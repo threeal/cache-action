@@ -4,10 +4,6 @@ description: Save and restore cache
 branding:
   icon: archive
   color: black
-inputs:
-  path:
-    description: Path of the directory to create
-    required: true
 runs:
   using: node20
   main: dist/index.mjs

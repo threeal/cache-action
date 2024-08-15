@@ -1,16 +1,15 @@
-import fs from 'node:fs';
+import 'node:fs';
 import os from 'node:os';
 import 'node:path';
+import https from 'node:https';
 
 /**
- * Retrieves the value of a GitHub Actions input.
+ * Logs an information message in GitHub Actions.
  *
- * @param name - The name of the GitHub Actions input.
- * @returns The value of the GitHub Actions input, or an empty string if not found.
+ * @param message - The information message to log.
  */
-function getInput(name) {
-    const value = process.env[`INPUT_${name.toUpperCase()}`] || "";
-    return value.trim();
+function logInfo(message) {
+    process.stdout.write(`${message}${os.EOL}`);
 }
 /**
  * Logs an error message in GitHub Actions.
@@ -23,17 +22,43 @@ function logError(err) {
 }
 
 /**
- * Creates a directory recursively.
+ * Sends an HTTPS request to the GitHub cache API endpoint.
  *
- * @param path - The path to the directory to create.
+ * @param resourcePath - The path of the resource to be accessed in the API.
+ * @param options - The options for the HTTPS request (e.g., method, headers).
+ * @param data - The data to be sent in the request body (optional).
+ * @returns A promise that resolves to a tuple containing the response status
+ * code and the parsed response data.
  */
-function mkdirRecursive(path) {
-    fs.mkdirSync(path, { recursive: true });
+async function sendCacheApiRequest(resourcePath, options, data) {
+    return new Promise((resolve, reject) => {
+        const req = https.request(`${process.env["ACTIONS_CACHE_URL"]}_apis/artifactcache/${resourcePath}`, options, (res) => {
+            let data = "";
+            res.on("data", (chunk) => (data += chunk.toString()));
+            res.on("end", () => {
+                resolve([res.statusCode, JSON.parse(data)]);
+            });
+        });
+        req.setHeader("Accept", "application/json;api-version=6.0-preview");
+        req.setHeader("Authorization", `Bearer ${process.env["ACTIONS_RUNTIME_TOKEN"]}`);
+        req.setHeader("Content-Type", "application/json");
+        req.on("error", (err) => reject(err));
+        req.end();
+    });
 }
 
 try {
-    const path = getInput("path");
-    mkdirRecursive(path);
+    logInfo("Getting caches information...");
+    const [status, caches] = await sendCacheApiRequest("caches", {
+        method: "GET",
+    });
+    if (status !== 200) {
+        throw new Error(`Failed to get caches information: ${status}`);
+    }
+    logInfo(`Found ${caches.totalCount} caches:`);
+    for (const cache of caches.artifactCaches) {
+        logInfo(`- ${cache.id} ${cache.cacheKey}`);
+    }
 }
 catch (err) {
     logError(err);

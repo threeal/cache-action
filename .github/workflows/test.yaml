@@ -36,20 +36,11 @@ jobs:
       - name: Checkout Action
         uses: actions/checkout@v4.1.7
         with:
-          path: mkdir-action
+          path: cache-action
           sparse-checkout: |
             action.yml
             dist
           sparse-checkout-cone-mode: false
 
-      # Modify the following steps for testing your JavaScript action.
-      # Learn more: https://docs.github.com/en/actions/automating-builds-and-tests
-
-      - name: Create Directory
-        uses: ./mkdir-action
-        with:
-          path: parent/child
-
-      - name: Check Directory
-        shell: bash
-        run: test -d parent/child
+      - name: Get Caches Information
+        uses: ./cache-action

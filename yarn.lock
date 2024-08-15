@@ -4560,6 +4560,7 @@ __metadata:
   resolution: "root@workspace:."
   dependencies:
     "@eslint/js": "npm:^9.9.0"
+    "@jest/globals": "npm:^29.7.0"
     "@rollup/plugin-commonjs": "npm:^26.0.1"
     "@rollup/plugin-node-resolve": "npm:^15.2.3"
     "@rollup/plugin-typescript": "npm:^11.1.6"

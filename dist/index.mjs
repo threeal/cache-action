@@ -4,6 +4,16 @@ import 'node:path';
 import https from 'node:https';
 
 /**
+ * Retrieves the value of a GitHub Actions input.
+ *
+ * @param name - The name of the GitHub Actions input.
+ * @returns The value of the GitHub Actions input, or an empty string if not found.
+ */
+function getInput(name) {
+    const value = process.env[`INPUT_${name.toUpperCase()}`] || "";
+    return value.trim();
+}
+/**
  * Logs an information message in GitHub Actions.
  *
  * @param message - The information message to log.
@@ -43,22 +53,33 @@ async function sendCacheApiRequest(resourcePath, options, data) {
         req.setHeader("Authorization", `Bearer ${process.env["ACTIONS_RUNTIME_TOKEN"]}`);
         req.setHeader("Content-Type", "application/json");
         req.on("error", (err) => reject(err));
+        if (data !== undefined) {
+            req.write(JSON.stringify(data));
+        }
         req.end();
     });
 }
 
+/**
+ * Reserve a cache with the specified key, version, and size.
+ *
+ * @param key - The key of the cache to reserve.
+ * @param version - The version of the cache to reserve.
+ * @param size - The size of the cache to reserve, in bytes.
+ * @returns A promise that resolves with the reserved cache ID.
+ */
+async function reserveCache(key, version, size) {
+    const [status, { cacheId }] = await sendCacheApiRequest("caches", { method: "POST" }, { key, version, cacheSize: size });
+    if (status !== 201) {
+        throw new Error(`failed to reserve cache: ${status}}`);
+    }
+    return cacheId;
+}
+
 try {
-    logInfo("Getting caches information...");
-    const [status, caches] = await sendCacheApiRequest("caches", {
-        method: "GET",
-    });
-    if (status !== 200) {
-        throw new Error(`Failed to get caches information: ${status}`);
-    }
-    logInfo(`Found ${caches.totalCount} caches:`);
-    for (const cache of caches.artifactCaches) {
-        logInfo(`- ${cache.id} ${cache.cacheKey}`);
-    }
+    logInfo("Reserving cache...");
+    const cacheId = await reserveCache(getInput("key"), getInput("version"), parseInt(getInput("size"), 10));
+    logInfo(`Reserved cache with id: ${cacheId}`);
 }
 catch (err) {
     logError(err);

@@ -1,9 +1,19 @@
 name: Cache Action
 author: Alfi Maulana
-description: Save and restore cache
+description: Reserve caches
 branding:
   icon: archive
   color: black
+inputs:
+  key:
+    description: The key of the cache to reserve
+    required: true
+  version:
+    description: The version of the cache to reserve
+    required: true
+  size:
+    description: The size of the cache to reserve, in bytes
+    required: true
 runs:
   using: node20
   main: dist/index.mjs

@@ -1,27 +1,14 @@
-import { logError, logInfo } from "gha-utils";
-import { sendCacheApiRequest } from "./api.js";
-
-interface Caches {
-  totalCount: number;
-  artifactCaches: {
-    id: number;
-    cacheKey: string;
-  }[];
-}
+import { getInput, logError, logInfo } from "gha-utils";
+import { reserveCache } from "./cache.js";
 
 try {
-  logInfo("Getting caches information...");
-  const [status, caches] = await sendCacheApiRequest<Caches>("caches", {
-    method: "GET",
-  });
-  if (status !== 200) {
-    throw new Error(`Failed to get caches information: ${status}`);
-  }
-
-  logInfo(`Found ${caches.totalCount} caches:`);
-  for (const cache of caches.artifactCaches) {
-    logInfo(`- ${cache.id} ${cache.cacheKey}`);
-  }
+  logInfo("Reserving cache...");
+  const cacheId = await reserveCache(
+    getInput("key"),
+    getInput("version"),
+    parseInt(getInput("size"), 10),
+  );
+  logInfo(`Reserved cache with id: ${cacheId}`);
 } catch (err) {
   logError(err);
   process.exit(1);

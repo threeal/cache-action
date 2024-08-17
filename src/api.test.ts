@@ -3,65 +3,107 @@ import http from "node:http";
 
 jest.unstable_mockModule("node:https", () => ({ default: http }));
 
-describe("send HTTPS requests to GitHub cache API endpoints", () => {
+let server: http.Server;
+let serverHandler: (
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+) => boolean;
+
+beforeAll(() => {
+  server = http.createServer((req, res) => {
+    if (!serverHandler(req, res)) {
+      res.writeHead(404);
+      res.end();
+    }
+  });
+
+  server.listen(12345);
+});
+
+beforeEach(() => {
+  process.env["ACTIONS_CACHE_URL"] = "http://localhost:12345/";
+  process.env["ACTIONS_RUNTIME_TOKEN"] = "some token";
+
+  serverHandler = () => false;
+});
+
+describe("create HTTPS requests for the GitHub cache API endpoint", () => {
+  it("should create an HTTPS request", async () => {
+    const { createRequest } = await import("./api.js");
+
+    const req = createRequest("caches", { method: "GET" });
+    req.end();
+
+    expect(req.path).toBe("/_apis/artifactcache/caches");
+    expect(req.method).toBe("GET");
+
+    expect(req.getHeader("Accept")).toBe(
+      "application/json;api-version=6.0-preview",
+    );
+
+    expect(req.getHeader("Authorization")).toBe("Bearer some token");
+  });
+});
+
+describe("send requests containing JSON data", () => {
   it("should send a request to a valid endpoint", async () => {
-    const { sendCacheApiRequest } = await import("./api.js");
+    const { createRequest, sendJsonRequest } = await import("./api.js");
 
-    process.env["ACTIONS_CACHE_URL"] = "http://localhost:12345/";
-    process.env["ACTIONS_RUNTIME_TOKEN"] = "some token";
+    serverHandler = (req, res) => {
+      if (req.method !== "POST") return false;
+      if (req.url !== "/_apis/artifactcache/caches") return false;
 
-    const server = http.createServer((req, res) => {
       let rawData = "";
       req.on("data", (chunk) => (rawData += chunk.toString()));
       req.on("end", () => {
-        const token = req.headers.authorization;
-        if (token !== "Bearer some token") {
-          res.writeHead(401, { "Content-Type": "application/json" });
-          res.end(JSON.stringify(`invalid bearer token: ${token}`));
-          return;
-        }
-
-        if (
-          req.method === "POST" &&
-          req.url === "/_apis/artifactcache/caches"
-        ) {
-          const data = JSON.parse(rawData);
-          if (data.message == "some message") {
-            res.writeHead(200, { "Content-Type": "application/json" });
-            res.end(JSON.stringify({ message: "some other message" }));
-          } else {
-            res.writeHead(400, { "Content-Type": "application/json" });
-            res.end(JSON.stringify(`invalid message: ${data.message}`));
-          }
-          return;
-        }
-
-        res.writeHead(404, { "Content-Type": "application/json" });
-        res.end(
-          JSON.stringify(`unknown resource: ${req.method} on ${req.url}`),
-        );
+        const data = JSON.parse(rawData);
+        res.writeHead(data.message == "some message" ? 200 : 400);
+        res.end(" ");
       });
-    });
-    server.listen(12345);
+      return true;
+    };
 
-    const res = await sendCacheApiRequest<{ message: string }>(
-      "caches",
-      { method: "POST" },
-      { message: "some message" },
-    );
+    const req = createRequest("caches", { method: "POST" });
 
-    expect(res).toEqual([200, { message: "some other message" }]);
-
-    server.close();
+    const res = await sendJsonRequest(req, { message: "some message" });
+    expect(res.statusCode).toEqual(200);
   });
 
   it("should fail to send a request to an invalid endpoint", async () => {
-    const { sendCacheApiRequest } = await import("./api.js");
+    const { createRequest, sendJsonRequest } = await import("./api.js");
 
     process.env["ACTIONS_CACHE_URL"] = "http://invalid/";
 
-    await expect(
-      sendCacheApiRequest("caches", { method: "POST" }),
-    ).rejects.toThrow();
+    const req = createRequest("caches", { method: "POST" });
+    await expect(sendJsonRequest(req, {})).rejects.toThrow();
   });
 });
+
+describe("handle responses containing JSON data", () => {
+  it("should handle a response", async () => {
+    const { createRequest, handleJsonResponse } = await import("./api.js");
+
+    serverHandler = (req, res) => {
+      if (req.method !== "GET") return false;
+      if (req.url !== "/_apis/artifactcache/caches") return false;
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "some message" }));
+      return true;
+    };
+
+    const req = createRequest("caches", { method: "GET" });
+
+    const res = await new Promise<http.IncomingMessage>((resolve, reject) => {
+      req.on("response", (res) => resolve(res));
+      req.on("error", (err) => reject(err));
+      req.end();
+    });
+    expect(res.statusCode).toEqual(200);
+
+    const data = await handleJsonResponse(res);
+    expect(data).toEqual({ message: "some message" });
+  });
+});
+
+afterAll(() => server.close());

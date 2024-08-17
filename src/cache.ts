@@ -1,4 +1,9 @@
-import { createRequest, handleJsonResponse, sendJsonRequest } from "./api.js";
+import {
+  createRequest,
+  handleJsonResponse,
+  handleErrorResponse,
+  sendJsonRequest,
+} from "./api.js";
 
 /**
  * Reserve a cache with the specified key, version, and size.
@@ -16,7 +21,7 @@ export async function reserveCache(
   const req = createRequest("caches", { method: "POST" });
   const res = await sendJsonRequest(req, { key, version, cacheSize: size });
   if (res.statusCode !== 201) {
-    throw new Error(`failed to reserve cache: ${res.statusCode}}`);
+    throw await handleErrorResponse(res);
   }
   const { cacheId } = (await handleJsonResponse(res)) as { cacheId: number };
   return cacheId;

@@ -75,6 +75,16 @@ async function handleJsonResponse(res) {
         });
     });
 }
+/**
+ * Handles an HTTPS response containing error data.
+ *
+ * @param res - The HTTPS response object.
+ * @returns A promise that resolves to an error object.
+ */
+async function handleErrorResponse(res) {
+    const data = (await handleJsonResponse(res));
+    return new Error(data.message);
+}
 
 /**
  * Reserve a cache with the specified key, version, and size.
@@ -88,7 +98,7 @@ async function reserveCache(key, version, size) {
     const req = createRequest("caches", { method: "POST" });
     const res = await sendJsonRequest(req, { key, version, cacheSize: size });
     if (res.statusCode !== 201) {
-        throw new Error(`failed to reserve cache: ${res.statusCode}}`);
+        throw await handleErrorResponse(res);
     }
     const { cacheId } = (await handleJsonResponse(res));
     return cacheId;

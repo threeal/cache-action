@@ -3,33 +3,33 @@ import http from "node:http";
 
 jest.unstable_mockModule("node:https", () => ({ default: http }));
 
-type ServerHandlers = (
+let server: http.Server;
+let serverHandler: (
   req: http.IncomingMessage,
   res: http.ServerResponse,
 ) => boolean;
-const createServer = (handlers: ServerHandlers[]): http.Server => {
-  process.env["ACTIONS_CACHE_URL"] = "http://localhost:12345/";
-  process.env["ACTIONS_RUNTIME_TOKEN"] = "some token";
 
-  const server = http.createServer((req, res) => {
-    for (const handler of handlers) {
-      if (handler(req, res)) return;
+beforeAll(() => {
+  server = http.createServer((req, res) => {
+    if (!serverHandler(req, res)) {
+      res.writeHead(404);
+      res.end();
     }
-
-    res.writeHead(404);
-    res.end();
   });
 
   server.listen(12345);
-  return server;
-};
+});
+
+beforeEach(() => {
+  process.env["ACTIONS_CACHE_URL"] = "http://localhost:12345/";
+  process.env["ACTIONS_RUNTIME_TOKEN"] = "some token";
+
+  serverHandler = () => false;
+});
 
 describe("create HTTPS requests for the GitHub cache API endpoint", () => {
   it("should create an HTTPS request", async () => {
     const { createRequest } = await import("./api.js");
-
-    process.env["ACTIONS_CACHE_URL"] = "http://localhost:12345/";
-    process.env["ACTIONS_RUNTIME_TOKEN"] = "some token";
 
     const req = createRequest("caches", { method: "GET" });
     req.end();
@@ -49,33 +49,24 @@ describe("send requests containing JSON data", () => {
   it("should send a request to a valid endpoint", async () => {
     const { createRequest, sendJsonRequest } = await import("./api.js");
 
-    const server = createServer([
-      (req, res) => {
-        if (req.method !== "POST") return false;
-        if (req.url !== "/_apis/artifactcache/caches") return false;
-        let rawData = "";
-        req.on("data", (chunk) => (rawData += chunk.toString()));
-        req.on("end", () => {
-          const data = JSON.parse(rawData);
-          if (data.message == "some message") {
-            res.writeHead(200);
-            res.end();
-            return;
-          } else {
-            res.writeHead(400);
-            res.end();
-          }
-        });
-        return true;
-      },
-    ]);
+    serverHandler = (req, res) => {
+      if (req.method !== "POST") return false;
+      if (req.url !== "/_apis/artifactcache/caches") return false;
+
+      let rawData = "";
+      req.on("data", (chunk) => (rawData += chunk.toString()));
+      req.on("end", () => {
+        const data = JSON.parse(rawData);
+        res.writeHead(data.message == "some message" ? 200 : 400);
+        res.end(" ");
+      });
+      return true;
+    };
 
     const req = createRequest("caches", { method: "POST" });
 
     const res = await sendJsonRequest(req, { message: "some message" });
     expect(res.statusCode).toEqual(200);
-
-    server.close();
   });
 
   it("should fail to send a request to an invalid endpoint", async () => {
@@ -92,15 +83,14 @@ describe("handle responses containing JSON data", () => {
   it("should handle a response", async () => {
     const { createRequest, handleJsonResponse } = await import("./api.js");
 
-    const server = createServer([
-      (req, res) => {
-        if (req.method !== "GET") return false;
-        if (req.url !== "/_apis/artifactcache/caches") return false;
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ message: "some message" }));
-        return true;
-      },
-    ]);
+    serverHandler = (req, res) => {
+      if (req.method !== "GET") return false;
+      if (req.url !== "/_apis/artifactcache/caches") return false;
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "some message" }));
+      return true;
+    };
 
     const req = createRequest("caches", { method: "GET" });
 
@@ -113,7 +103,7 @@ describe("handle responses containing JSON data", () => {
 
     const data = await handleJsonResponse(res);
     expect(data).toEqual({ message: "some message" });
-
-    server.close();
   });
 });
+
+afterAll(() => server.close());

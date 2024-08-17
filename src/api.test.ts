@@ -106,4 +106,27 @@ describe("handle responses containing JSON data", () => {
   });
 });
 
+describe("handle responses containing error data", () => {
+  it("should handle a response", async () => {
+    const { createRequest, handleErrorResponse } = await import("./api.js");
+
+    serverHandler = (req, res) => {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "some error" }));
+      return true;
+    };
+
+    const req = createRequest("caches", { method: "GET" });
+
+    const res = await new Promise<http.IncomingMessage>((resolve, reject) => {
+      req.on("response", (res) => resolve(res));
+      req.on("error", (err) => reject(err));
+      req.end();
+    });
+
+    const err = await handleErrorResponse(res);
+    expect(err.message).toBe("some error");
+  });
+});
+
 afterAll(() => server.close());

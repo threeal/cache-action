@@ -32,26 +32,36 @@ function logError(err) {
 }
 
 /**
- * Sends an HTTPS request containing JSON data to the GitHub cache API endpoint.
+ * Creates an HTTPS request for the GitHub cache API endpoint.
  *
  * @param resourcePath - The path of the resource to be accessed in the API.
  * @param options - The options for the HTTPS request (e.g., method, headers).
+ * @returns An HTTPS request object.
+ */
+function createRequest(resourcePath, options) {
+    const req = https.request(`${process.env["ACTIONS_CACHE_URL"]}_apis/artifactcache/${resourcePath}`, options);
+    req.setHeader("Accept", "application/json;api-version=6.0-preview");
+    req.setHeader("Authorization", `Bearer ${process.env["ACTIONS_RUNTIME_TOKEN"]}`);
+    return req;
+}
+/**
+ * Sends an HTTPS request containing JSON data.
+ *
+ * @param req - The HTTPS request object.
  * @param data - The JSON data to be sent in the request body.
  * @returns A promise that resolves to an HTTPS response object.
  */
-async function sendJsonRequest(resourcePath, options, data) {
+async function sendJsonRequest(req, data) {
     return new Promise((resolve, reject) => {
-        const req = https.request(`${process.env["ACTIONS_CACHE_URL"]}_apis/artifactcache/${resourcePath}`, options, (res) => resolve(res));
-        req.setHeader("Accept", "application/json;api-version=6.0-preview");
-        req.setHeader("Authorization", `Bearer ${process.env["ACTIONS_RUNTIME_TOKEN"]}`);
         req.setHeader("Content-Type", "application/json");
+        req.on("response", (res) => resolve(res));
         req.on("error", (err) => reject(err));
         req.write(JSON.stringify(data));
         req.end();
     });
 }
 /**
- * Handles an HTTPS response containing JSON data from the GitHub cache API endpoint.
+ * Handles an HTTPS response containing JSON data.
  *
  * @param res - The HTTPS response object.
  * @returns A promise that resolves to the parsed JSON data.
@@ -75,7 +85,8 @@ async function handleJsonResponse(res) {
  * @returns A promise that resolves with the reserved cache ID.
  */
 async function reserveCache(key, version, size) {
-    const res = await sendJsonRequest("caches", { method: "POST" }, { key, version, cacheSize: size });
+    const req = createRequest("caches", { method: "POST" });
+    const res = await sendJsonRequest(req, { key, version, cacheSize: size });
     if (res.statusCode !== 201) {
         throw new Error(`failed to reserve cache: ${res.statusCode}}`);
     }

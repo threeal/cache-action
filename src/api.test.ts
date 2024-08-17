@@ -12,13 +12,6 @@ const createServer = (handlers: ServerHandlers[]): http.Server => {
   process.env["ACTIONS_RUNTIME_TOKEN"] = "some token";
 
   const server = http.createServer((req, res) => {
-    const token = req.headers.authorization;
-    if (token !== "Bearer some token") {
-      res.writeHead(401, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(`invalid bearer token: ${token}`));
-      return;
-    }
-
     for (const handler of handlers) {
       if (handler(req, res)) return;
     }
@@ -31,9 +24,30 @@ const createServer = (handlers: ServerHandlers[]): http.Server => {
   return server;
 };
 
-describe("send requests containing JSON data to GitHub cache API endpoints", () => {
+describe("create HTTPS requests for the GitHub cache API endpoint", () => {
+  it("should create an HTTPS request", async () => {
+    const { createRequest } = await import("./api.js");
+
+    process.env["ACTIONS_CACHE_URL"] = "http://localhost:12345/";
+    process.env["ACTIONS_RUNTIME_TOKEN"] = "some token";
+
+    const req = createRequest("caches", { method: "GET" });
+    req.end();
+
+    expect(req.path).toBe("/_apis/artifactcache/caches");
+    expect(req.method).toBe("GET");
+
+    expect(req.getHeader("Accept")).toBe(
+      "application/json;api-version=6.0-preview",
+    );
+
+    expect(req.getHeader("Authorization")).toBe("Bearer some token");
+  });
+});
+
+describe("send requests containing JSON data", () => {
   it("should send a request to a valid endpoint", async () => {
-    const { sendJsonRequest } = await import("./api.js");
+    const { createRequest, sendJsonRequest } = await import("./api.js");
 
     const server = createServer([
       (req, res) => {
@@ -56,30 +70,27 @@ describe("send requests containing JSON data to GitHub cache API endpoints", () 
       },
     ]);
 
-    const res = await sendJsonRequest(
-      "caches",
-      { method: "POST" },
-      { message: "some message" },
-    );
+    const req = createRequest("caches", { method: "POST" });
+
+    const res = await sendJsonRequest(req, { message: "some message" });
     expect(res.statusCode).toEqual(200);
 
     server.close();
   });
 
   it("should fail to send a request to an invalid endpoint", async () => {
-    const { sendJsonRequest } = await import("./api.js");
+    const { createRequest, sendJsonRequest } = await import("./api.js");
 
     process.env["ACTIONS_CACHE_URL"] = "http://invalid/";
 
-    await expect(
-      sendJsonRequest("caches", { method: "POST" }, {}),
-    ).rejects.toThrow();
+    const req = createRequest("caches", { method: "POST" });
+    await expect(sendJsonRequest(req, {})).rejects.toThrow();
   });
 });
 
-describe("handle responses containing JSON data from GitHub cache API endpoints", () => {
-  it("should handle a response from an endpoint", async () => {
-    const { handleJsonResponse, sendJsonRequest } = await import("./api.js");
+describe("handle responses containing JSON data", () => {
+  it("should handle a response", async () => {
+    const { createRequest, handleJsonResponse } = await import("./api.js");
 
     const server = createServer([
       (req, res) => {
@@ -91,7 +102,13 @@ describe("handle responses containing JSON data from GitHub cache API endpoints"
       },
     ]);
 
-    const res = await sendJsonRequest("caches", { method: "GET" }, {});
+    const req = createRequest("caches", { method: "GET" });
+
+    const res = await new Promise<http.IncomingMessage>((resolve, reject) => {
+      req.on("response", (res) => resolve(res));
+      req.on("error", (err) => reject(err));
+      req.end();
+    });
     expect(res.statusCode).toEqual(200);
 
     const data = await handleJsonResponse(res);

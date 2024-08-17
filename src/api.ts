@@ -1,3 +1,4 @@
+import http from "node:http";
 import https from "node:https";
 
 /**
@@ -6,25 +7,18 @@ import https from "node:https";
  * @param resourcePath - The path of the resource to be accessed in the API.
  * @param options - The options for the HTTPS request (e.g., method, headers).
  * @param data - The JSON data to be sent in the request body.
- * @returns A promise that resolves to a tuple containing the response status
- * code and the parsed response data.
+ * @returns A promise that resolves to an HTTPS response object.
  */
-export async function sendJsonRequest<T>(
+export async function sendJsonRequest(
   resourcePath: string,
   options: https.RequestOptions,
   data: unknown,
-): Promise<[number, T]> {
+): Promise<http.IncomingMessage> {
   return new Promise((resolve, reject) => {
     const req = https.request(
       `${process.env["ACTIONS_CACHE_URL"]}_apis/artifactcache/${resourcePath}`,
       options,
-      (res) => {
-        let data = "";
-        res.on("data", (chunk) => (data += chunk.toString()));
-        res.on("end", () => {
-          resolve([res.statusCode as number, JSON.parse(data) as T]);
-        });
-      },
+      (res) => resolve(res),
     );
 
     req.setHeader("Accept", "application/json;api-version=6.0-preview");
@@ -38,5 +32,23 @@ export async function sendJsonRequest<T>(
 
     req.write(JSON.stringify(data));
     req.end();
+  });
+}
+
+/**
+ * Handles an HTTPS response containing JSON data from the GitHub cache API endpoint.
+ *
+ * @param res - The HTTPS response object.
+ * @returns A promise that resolves to the parsed JSON data.
+ */
+export async function handleJsonResponse(
+  res: http.IncomingMessage,
+): Promise<unknown> {
+  return new Promise((resolve) => {
+    let data = "";
+    res.on("data", (chunk) => (data += chunk.toString()));
+    res.on("end", () => {
+      resolve(JSON.parse(data));
+    });
   });
 }

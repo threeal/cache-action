@@ -1,4 +1,4 @@
-import { sendCacheApiRequest } from "./api.js";
+import { sendJsonRequest } from "./api.js";
 
 /**
  * Reserve a cache with the specified key, version, and size.
@@ -13,7 +13,7 @@ export async function reserveCache(
   version: string,
   size: number,
 ): Promise<number> {
-  const [status, { cacheId }] = await sendCacheApiRequest<{
+  const [status, { cacheId }] = await sendJsonRequest<{
     cacheId: number;
   }>("caches", { method: "POST" }, { key, version, cacheSize: size });
   if (status !== 201) {

@@ -32,15 +32,15 @@ function logError(err) {
 }
 
 /**
- * Sends an HTTPS request to the GitHub cache API endpoint.
+ * Sends an HTTPS request containing JSON data to the GitHub cache API endpoint.
  *
  * @param resourcePath - The path of the resource to be accessed in the API.
  * @param options - The options for the HTTPS request (e.g., method, headers).
- * @param data - The data to be sent in the request body (optional).
+ * @param data - The JSON data to be sent in the request body.
  * @returns A promise that resolves to a tuple containing the response status
  * code and the parsed response data.
  */
-async function sendCacheApiRequest(resourcePath, options, data) {
+async function sendJsonRequest(resourcePath, options, data) {
     return new Promise((resolve, reject) => {
         const req = https.request(`${process.env["ACTIONS_CACHE_URL"]}_apis/artifactcache/${resourcePath}`, options, (res) => {
             let data = "";
@@ -53,9 +53,7 @@ async function sendCacheApiRequest(resourcePath, options, data) {
         req.setHeader("Authorization", `Bearer ${process.env["ACTIONS_RUNTIME_TOKEN"]}`);
         req.setHeader("Content-Type", "application/json");
         req.on("error", (err) => reject(err));
-        if (data !== undefined) {
-            req.write(JSON.stringify(data));
-        }
+        req.write(JSON.stringify(data));
         req.end();
     });
 }
@@ -69,7 +67,7 @@ async function sendCacheApiRequest(resourcePath, options, data) {
  * @returns A promise that resolves with the reserved cache ID.
  */
 async function reserveCache(key, version, size) {
-    const [status, { cacheId }] = await sendCacheApiRequest("caches", { method: "POST" }, { key, version, cacheSize: size });
+    const [status, { cacheId }] = await sendJsonRequest("caches", { method: "POST" }, { key, version, cacheSize: size });
     if (status !== 201) {
         throw new Error(`failed to reserve cache: ${status}}`);
     }

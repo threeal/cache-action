@@ -3,9 +3,9 @@ import http from "node:http";
 
 jest.unstable_mockModule("node:https", () => ({ default: http }));
 
-describe("send HTTPS requests to GitHub cache API endpoints", () => {
+describe("send requests containing JSON data to GitHub cache API endpoints", () => {
   it("should send a request to a valid endpoint", async () => {
-    const { sendCacheApiRequest } = await import("./api.js");
+    const { sendJsonRequest } = await import("./api.js");
 
     process.env["ACTIONS_CACHE_URL"] = "http://localhost:12345/";
     process.env["ACTIONS_RUNTIME_TOKEN"] = "some token";
@@ -44,7 +44,7 @@ describe("send HTTPS requests to GitHub cache API endpoints", () => {
     });
     server.listen(12345);
 
-    const res = await sendCacheApiRequest<{ message: string }>(
+    const res = await sendJsonRequest<{ message: string }>(
       "caches",
       { method: "POST" },
       { message: "some message" },
@@ -56,12 +56,12 @@ describe("send HTTPS requests to GitHub cache API endpoints", () => {
   });
 
   it("should fail to send a request to an invalid endpoint", async () => {
-    const { sendCacheApiRequest } = await import("./api.js");
+    const { sendJsonRequest } = await import("./api.js");
 
     process.env["ACTIONS_CACHE_URL"] = "http://invalid/";
 
     await expect(
-      sendCacheApiRequest("caches", { method: "POST" }),
+      sendJsonRequest("caches", { method: "POST" }, {}),
     ).rejects.toThrow();
   });
 });

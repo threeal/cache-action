@@ -1,18 +1,18 @@
 import https from "node:https";
 
 /**
- * Sends an HTTPS request to the GitHub cache API endpoint.
+ * Sends an HTTPS request containing JSON data to the GitHub cache API endpoint.
  *
  * @param resourcePath - The path of the resource to be accessed in the API.
  * @param options - The options for the HTTPS request (e.g., method, headers).
- * @param data - The data to be sent in the request body (optional).
+ * @param data - The JSON data to be sent in the request body.
  * @returns A promise that resolves to a tuple containing the response status
  * code and the parsed response data.
  */
-export async function sendCacheApiRequest<T>(
+export async function sendJsonRequest<T>(
   resourcePath: string,
   options: https.RequestOptions,
-  data?: unknown,
+  data: unknown,
 ): Promise<[number, T]> {
   return new Promise((resolve, reject) => {
     const req = https.request(
@@ -36,10 +36,7 @@ export async function sendCacheApiRequest<T>(
 
     req.on("error", (err) => reject(err));
 
-    if (data !== undefined) {
-      req.write(JSON.stringify(data));
-    }
-
+    req.write(JSON.stringify(data));
     req.end();
   });
 }

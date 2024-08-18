@@ -1,5 +1,46 @@
 import { jest } from "@jest/globals";
-import http from "node:http";
+
+class MockedRequest {
+  headers: Record<string, string> = {};
+
+  #writtenData = "";
+  data?: string;
+
+  #onResponse?: (res: any) => void;
+  #onError?: (err: Error) => void;
+
+  setHeader(name: string, value: string): void {
+    this.headers[name] = value;
+  }
+
+  write(chunk: any): void {
+    this.#writtenData += chunk;
+  }
+
+  end(): void {
+    this.data = this.#writtenData;
+  }
+
+  on(event: string, callback: any): void {
+    switch (event) {
+      case "response":
+        this.#onResponse = callback;
+        break;
+
+      case "error":
+        this.#onError = callback;
+        break;
+    }
+  }
+
+  response(res: any): void {
+    if (this.#onResponse !== undefined) this.#onResponse(res);
+  }
+
+  error(err: Error): void {
+    if (this.#onError !== undefined) this.#onError(err);
+  }
+}
 
 class MockedResponse {
   #onData?: (chunk: any) => void;
@@ -26,81 +67,59 @@ class MockedResponse {
   }
 }
 
-jest.unstable_mockModule("node:https", () => ({ default: http }));
+const https = {
+  request: jest.fn(),
+};
 
-let server: http.Server;
-let serverHandler: (
-  req: http.IncomingMessage,
-  res: http.ServerResponse,
-) => boolean;
-
-beforeAll(() => {
-  server = http.createServer((req, res) => {
-    if (!serverHandler(req, res)) {
-      res.writeHead(404);
-      res.end();
-    }
-  });
-
-  server.listen(12345);
-});
-
-beforeEach(() => {
-  process.env["ACTIONS_CACHE_URL"] = "http://localhost:12345/";
-  process.env["ACTIONS_RUNTIME_TOKEN"] = "some token";
-
-  serverHandler = () => false;
-});
+jest.unstable_mockModule("node:https", () => ({ default: https }));
 
 describe("create HTTPS requests for the GitHub cache API endpoint", () => {
   it("should create an HTTPS request", async () => {
     const { createRequest } = await import("./api.js");
 
-    const req = createRequest("caches", { method: "GET" });
-    req.end();
+    process.env["ACTIONS_CACHE_URL"] = "http://localhost:12345/";
+    process.env["ACTIONS_RUNTIME_TOKEN"] = "some token";
 
-    expect(req.path).toBe("/_apis/artifactcache/caches");
-    expect(req.method).toBe("GET");
+    https.request.mockImplementation((url, options) => {
+      expect(url).toBe("http://localhost:12345/_apis/artifactcache/resources");
+      expect(options).toBe("some options");
+      return new MockedRequest();
+    });
 
-    expect(req.getHeader("Accept")).toBe(
-      "application/json;api-version=6.0-preview",
-    );
+    const req = createRequest("resources", "some options" as any) as any;
 
-    expect(req.getHeader("Authorization")).toBe("Bearer some token");
+    expect(req.headers).toEqual({
+      Accept: "application/json;api-version=6.0-preview",
+      Authorization: "Bearer some token",
+    });
   });
 });
 
-describe("send requests containing JSON data", () => {
-  it("should send a request to a valid endpoint", async () => {
-    const { createRequest, sendJsonRequest } = await import("./api.js");
+describe("send HTTPS requests containing JSON data", () => {
+  it("should send an HTTPS request", async () => {
+    const { sendJsonRequest } = await import("./api.js");
 
-    serverHandler = (req, res) => {
-      if (req.method !== "POST") return false;
-      if (req.url !== "/_apis/artifactcache/caches") return false;
+    const req = new MockedRequest();
+    const prom = sendJsonRequest(req as any, { message: "some message" });
 
-      let rawData = "";
-      req.on("data", (chunk) => (rawData += chunk.toString()));
-      req.on("end", () => {
-        const data = JSON.parse(rawData);
-        res.writeHead(data.message == "some message" ? 200 : 400);
-        res.end(" ");
-      });
-      return true;
-    };
+    req.response("some response");
 
-    const req = createRequest("caches", { method: "POST" });
-
-    const res = await sendJsonRequest(req, { message: "some message" });
-    expect(res.statusCode).toEqual(200);
+    await expect(prom).resolves.toBe("some response");
+    expect(req.headers).toEqual({ "Content-Type": "application/json" });
+    expect(req.data).toBe(JSON.stringify({ message: "some message" }));
   });
 
-  it("should fail to send a request to an invalid endpoint", async () => {
-    const { createRequest, sendJsonRequest } = await import("./api.js");
+  it("should fail to send an HTTPS request", async () => {
+    const { sendJsonRequest } = await import("./api.js");
 
     process.env["ACTIONS_CACHE_URL"] = "http://invalid/";
 
-    const req = createRequest("caches", { method: "POST" });
-    await expect(sendJsonRequest(req, {})).rejects.toThrow();
+    const req = new MockedRequest();
+    const prom = sendJsonRequest(req as any, {});
+
+    req.error(new Error("some error"));
+
+    await expect(prom).rejects.toThrow("some error");
   });
 });
 
@@ -131,5 +150,3 @@ describe("handle HTTPS responses containing error data", () => {
     await expect(prom).resolves.toEqual(new Error("some error"));
   });
 });
-
-afterAll(() => server.close());

@@ -65,3 +65,16 @@ export async function handleJsonResponse(
     });
   });
 }
+
+/**
+ * Handles an HTTPS response containing error data.
+ *
+ * @param res - The HTTPS response object.
+ * @returns A promise that resolves to an error object.
+ */
+export async function handleErrorResponse(
+  res: http.IncomingMessage,
+): Promise<Error> {
+  const data = (await handleJsonResponse(res)) as { message: string };
+  return new Error(data.message);
+}

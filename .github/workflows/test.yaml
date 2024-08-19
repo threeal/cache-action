@@ -46,7 +46,14 @@ jobs:
         shell: bash
         run: echo "some value" >> file.txt
 
-      - name: Reserve Cache
+      - name: Save Cache
+        uses: ./cache-action
+        with:
+          key: some-key-${{ matrix.os }}
+          version: ${{ github.run_id }}
+          file: file.txt
+
+      - name: Save Cache Again
         uses: ./cache-action
         with:
           key: some-key-${{ matrix.os }}

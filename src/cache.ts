@@ -1,4 +1,4 @@
-import stream from "node:stream";
+import type stream from "node:stream";
 
 import {
   createRequest,
@@ -6,8 +6,47 @@ import {
   handleJsonResponse,
   handleResponse,
   sendJsonRequest,
+  sendRequest,
   sendStreamRequest,
 } from "./api.js";
+
+interface Cache {
+  scope: string;
+  cacheKey: string;
+  cacheVersion: string;
+  creationTime: string;
+  archiveLocation: string;
+}
+
+/**
+ * Retrieves cache information for the specified key and version.
+ *
+ * @param key - The cache key.
+ * @param version - The cache version.
+ * @returns A promise that resolves with the cache information or null if not found.
+ */
+export async function getCache(
+  key: string,
+  version: string,
+): Promise<Cache | null> {
+  const req = createRequest(`cache?keys=${key}&version=${version}`, {
+    method: "GET",
+  });
+  const res = await sendRequest(req);
+
+  switch (res.statusCode) {
+    case 200:
+      return await handleJsonResponse<Cache>(res);
+
+    // Cache not found, return null.
+    case 204:
+      await handleResponse(res);
+      return null;
+
+    default:
+      throw await handleErrorResponse(res);
+  }
+}
 
 /**
  * Reserves a cache with the specified key, version, and size.
@@ -49,7 +88,7 @@ export async function uploadCache(
   if (res.statusCode !== 204) {
     throw await handleErrorResponse(res);
   }
-  handleResponse(res);
+  await handleResponse(res);
 }
 
 /**
@@ -65,5 +104,5 @@ export async function commitCache(id: number, size: number): Promise<void> {
   if (res.statusCode !== 204) {
     throw await handleErrorResponse(res);
   }
-  handleResponse(res);
+  await handleResponse(res);
 }

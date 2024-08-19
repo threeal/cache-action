@@ -126,6 +126,29 @@ async function handleErrorResponse(res) {
 }
 
 /**
+ * Retrieves cache information for the specified key and version.
+ *
+ * @param key - The cache key.
+ * @param version - The cache version.
+ * @returns A promise that resolves with the cache information or null if not found.
+ */
+async function getCache(key, version) {
+    const req = createRequest(`cache?keys=${key}&version=${version}`, {
+        method: "GET",
+    });
+    const res = await sendRequest(req);
+    switch (res.statusCode) {
+        case 200:
+            return await handleJsonResponse(res);
+        // Cache not found, return null.
+        case 204:
+            await handleResponse(res);
+            return null;
+        default:
+            throw await handleErrorResponse(res);
+    }
+}
+/**
  * Reserves a cache with the specified key, version, and size.
  *
  * @param key - The key of the cache to reserve.
@@ -156,7 +179,7 @@ async function uploadCache(id, file, fileSize) {
     if (res.statusCode !== 204) {
         throw await handleErrorResponse(res);
     }
-    handleResponse(res);
+    await handleResponse(res);
 }
 /**
  * Commits a cache with the specified ID.
@@ -171,14 +194,22 @@ async function commitCache(id, size) {
     if (res.statusCode !== 204) {
         throw await handleErrorResponse(res);
     }
-    handleResponse(res);
+    await handleResponse(res);
 }
 
 try {
+    const key = getInput("key");
+    const version = getInput("version");
+    logInfo("Getting cache...");
+    const cache = await getCache(key, version);
+    if (cache !== null) {
+        logInfo("Cache exists, skipping upload...");
+        process.exit(0);
+    }
     const filePath = getInput("file");
     const fileSize = fs.statSync(filePath).size;
     logInfo("Reserving cache...");
-    const cacheId = await reserveCache(getInput("key"), getInput("version"), fileSize);
+    const cacheId = await reserveCache(key, version, fileSize);
     logInfo(`Cache reserved with id: ${cacheId}`);
     logInfo("Uploading cache...");
     const file = fs.createReadStream(filePath, {

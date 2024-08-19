@@ -1,17 +1,8 @@
 import { jest } from "@jest/globals";
 
-class MockedRequest {
-  headers: Record<string, string> = {};
-
+class MockedWritable {
   #writtenData = "";
   data?: string;
-
-  #onResponse?: (res: any) => void;
-  #onError?: (err: Error) => void;
-
-  setHeader(name: string, value: string): void {
-    this.headers[name] = value;
-  }
 
   write(chunk: any): void {
     this.#writtenData += chunk;
@@ -19,6 +10,17 @@ class MockedRequest {
 
   end(): void {
     this.data = this.#writtenData;
+  }
+}
+
+class MockedRequest extends MockedWritable {
+  headers: Record<string, string> = {};
+
+  #onResponse?: (res: any) => void;
+  #onError?: (err: Error) => void;
+
+  setHeader(name: string, value: string): void {
+    this.headers[name] = value;
   }
 
   on(event: string, callback: any): void {
@@ -42,7 +44,7 @@ class MockedRequest {
   }
 }
 
-class MockedResponse {
+class MockedReadable {
   #onData?: (chunk: any) => void;
   #onEnd?: () => void;
 
@@ -58,7 +60,7 @@ class MockedResponse {
     }
   }
 
-  data(chunk: any): void {
+  write(chunk: any): void {
     if (this.#onData !== undefined) this.#onData(chunk);
   }
 
@@ -66,6 +68,8 @@ class MockedResponse {
     if (this.#onEnd !== undefined) this.#onEnd();
   }
 }
+
+class MockedResponse extends MockedReadable {}
 
 const https = {
   request: jest.fn(),
@@ -130,7 +134,7 @@ describe("handle HTTPS responses containing JSON data", () => {
     const res = new MockedResponse();
     const prom = handleJsonResponse(res as any);
 
-    res.data(JSON.stringify({ message: "some message" }));
+    res.write(JSON.stringify({ message: "some message" }));
     res.end();
 
     await expect(prom).resolves.toEqual({ message: "some message" });
@@ -144,7 +148,7 @@ describe("handle HTTPS responses containing error data", () => {
     const res = new MockedResponse();
     const prom = handleErrorResponse(res as any);
 
-    res.data(JSON.stringify({ message: "some error" }));
+    res.write(JSON.stringify({ message: "some error" }));
     res.end();
 
     await expect(prom).resolves.toEqual(new Error("some error"));

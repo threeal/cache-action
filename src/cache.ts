@@ -51,3 +51,19 @@ export async function uploadCache(
   }
   handleResponse(res);
 }
+
+/**
+ * Commits a cache with the specified ID.
+ *
+ * @param id - The cache ID.
+ * @param size - The size of the cache in bytes.
+ * @returns A promise that resolves with nothing.
+ */
+export async function commitCache(id: number, size: number): Promise<void> {
+  const req = createRequest(`caches/${id}`, { method: "POST" });
+  const res = await sendJsonRequest(req, { size });
+  if (res.statusCode !== 204) {
+    throw await handleErrorResponse(res);
+  }
+  handleResponse(res);
+}

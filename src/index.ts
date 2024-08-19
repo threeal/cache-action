@@ -1,6 +1,6 @@
 import { getInput, logError, logInfo } from "gha-utils";
 import fs from "node:fs";
-import { reserveCache, uploadCache } from "./cache.js";
+import { commitCache, reserveCache, uploadCache } from "./cache.js";
 
 try {
   const filePath = getInput("file");
@@ -23,6 +23,10 @@ try {
   });
   await uploadCache(cacheId, file, fileSize);
   logInfo("Cache uploaded");
+
+  logInfo("Commiting cache...");
+  await commitCache(cacheId, fileSize);
+  logInfo("Cache committed");
 } catch (err) {
   logError(err);
   process.exit(1);

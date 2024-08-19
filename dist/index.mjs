@@ -147,6 +147,21 @@ async function uploadCache(id, file, fileSize) {
     }
     handleResponse(res);
 }
+/**
+ * Commits a cache with the specified ID.
+ *
+ * @param id - The cache ID.
+ * @param size - The size of the cache in bytes.
+ * @returns A promise that resolves with nothing.
+ */
+async function commitCache(id, size) {
+    const req = createRequest(`caches/${id}`, { method: "POST" });
+    const res = await sendJsonRequest(req, { size });
+    if (res.statusCode !== 204) {
+        throw await handleErrorResponse(res);
+    }
+    handleResponse(res);
+}
 
 try {
     const filePath = getInput("file");
@@ -163,6 +178,9 @@ try {
     });
     await uploadCache(cacheId, file, fileSize);
     logInfo("Cache uploaded");
+    logInfo("Commiting cache...");
+    await commitCache(cacheId, fileSize);
+    logInfo("Cache committed");
 }
 catch (err) {
     logError(err);

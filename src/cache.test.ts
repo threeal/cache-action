@@ -18,6 +18,70 @@ jest.unstable_mockModule("./api.js", () => ({
   sendStreamRequest,
 }));
 
+describe("retrieve caches", () => {
+  beforeAll(() => {
+    createRequest.mockImplementation((resourcePath, options) => {
+      expect(resourcePath).toBe("cache?keys=some-key&version=some-version");
+      expect(options).toEqual({ method: "GET" });
+      return "some request";
+    });
+  });
+
+  it("should retrieve a cache", async () => {
+    const { getCache } = await import("./cache.js");
+
+    sendRequest.mockImplementation(async (req, data) => {
+      expect(req).toBe("some request");
+      expect(data).toBeUndefined();
+      return { statusCode: 200 };
+    });
+
+    handleJsonResponse.mockImplementation(async (res) => {
+      expect(res).toEqual({ statusCode: 200 });
+      return "some cache";
+    });
+
+    const cache = await getCache("some-key", "some-version");
+    expect(cache).toBe("some cache");
+  });
+
+  it("should retrieve a non-existing cache", async () => {
+    const { getCache } = await import("./cache.js");
+
+    sendRequest.mockImplementation(async (req, data) => {
+      expect(req).toBe("some request");
+      expect(data).toBeUndefined();
+      return { statusCode: 204 };
+    });
+
+    handleResponse.mockImplementation(async (res) => {
+      expect(res).toEqual({ statusCode: 204 });
+      return "";
+    });
+
+    const cache = await getCache("some-key", "some-version");
+    expect(cache).toBeNull();
+  });
+
+  it("should fail to retrieve a cache", async () => {
+    const { getCache } = await import("./cache.js");
+
+    sendRequest.mockImplementation(async (req, data) => {
+      expect(req).toBe("some request");
+      expect(data).toBeUndefined();
+      return { statusCode: 500 };
+    });
+
+    handleErrorResponse.mockImplementation(async (res) => {
+      expect(res).toEqual({ statusCode: 500 });
+      return new Error("some error");
+    });
+
+    const prom = getCache("some-key", "some-version");
+    await expect(prom).rejects.toThrow("some error");
+  });
+});
+
 describe("reserve caches", () => {
   beforeAll(() => {
     createRequest.mockImplementation((resourcePath, options) => {

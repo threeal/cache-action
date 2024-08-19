@@ -67,12 +67,11 @@ async function sendJsonRequest(req, data) {
  * @returns A promise that resolves to the parsed JSON data.
  */
 async function handleJsonResponse(res) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
         let data = "";
         res.on("data", (chunk) => (data += chunk.toString()));
-        res.on("end", () => {
-            resolve(JSON.parse(data));
-        });
+        res.on("end", () => resolve(JSON.parse(data)));
+        res.on("error", (err) => reject(err));
     });
 }
 /**

@@ -6,13 +6,13 @@ branding:
   color: black
 inputs:
   key:
-    description: The key of the cache to reserve
+    description: The key of the cache
     required: true
   version:
-    description: The version of the cache to reserve
+    description: The version of the cache
     required: true
-  size:
-    description: The size of the cache to reserve, in bytes
+  file:
+    description: The file to cache
     required: true
 runs:
   using: node20

@@ -1,4 +1,4 @@
-import 'node:fs';
+import fs from 'node:fs';
 import os from 'node:os';
 import 'node:path';
 import https from 'node:https';
@@ -61,6 +61,24 @@ async function sendJsonRequest(req, data) {
     });
 }
 /**
+ * Sends an HTTPS request containing a binary stream.
+ *
+ * @param req - The HTTPS request object.
+ * @param bin - The binary stream to be sent in the request body.
+ * @param start - The starting byte of the binary stream.
+ * @param end - The ending byte of the binary stream.
+ * @returns A promise that resolves to an HTTPS response object.
+ */
+async function sendStreamRequest(req, bin, start, end) {
+    return new Promise((resolve, reject) => {
+        req.setHeader("Content-Type", "application/octet-stream");
+        req.setHeader("Content-Range", `bytes ${start}-${end}/*`);
+        req.on("response", (res) => resolve(res));
+        req.on("error", (err) => reject(err));
+        bin.pipe(req);
+    });
+}
+/**
  * Handles an HTTPS response containing raw data.
  *
  * @param res - The HTTPS response object.
@@ -113,11 +131,38 @@ async function reserveCache(key, version, size) {
     const { cacheId } = await handleJsonResponse(res);
     return cacheId;
 }
+/**
+ * Uploads a file to a cache with the specified ID.
+ *
+ * @param id - The cache ID.
+ * @param file - The readable stream of the file to upload.
+ * @param fileSize - The size of the file to upload, in bytes.
+ * @returns A promise that resolves with nothing.
+ */
+async function uploadCache(id, file, fileSize) {
+    const req = createRequest(`caches/${id}`, { method: "PATCH" });
+    const res = await sendStreamRequest(req, file, 0, fileSize);
+    if (res.statusCode !== 204) {
+        throw await handleErrorResponse(res);
+    }
+    handleResponse(res);
+}
 
 try {
+    const filePath = getInput("file");
+    const fileSize = fs.statSync(filePath).size;
     logInfo("Reserving cache...");
-    const cacheId = await reserveCache(getInput("key"), getInput("version"), parseInt(getInput("size"), 10));
-    logInfo(`Reserved cache with id: ${cacheId}`);
+    const cacheId = await reserveCache(getInput("key"), getInput("version"), fileSize);
+    logInfo(`Cache reserved with id: ${cacheId}`);
+    logInfo("Uploading cache...");
+    const file = fs.createReadStream(filePath, {
+        fd: fs.openSync(filePath, "r"),
+        autoClose: false,
+        start: 0,
+        end: fileSize,
+    });
+    await uploadCache(cacheId, file, fileSize);
+    logInfo("Cache uploaded");
 }
 catch (err) {
     logError(err);

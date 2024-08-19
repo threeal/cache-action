@@ -76,20 +76,34 @@ export async function sendStreamRequest(
 }
 
 /**
- * Handles an HTTPS response containing JSON data.
+ * Handles an HTTPS response containing raw data.
  *
  * @param res - The HTTPS response object.
- * @returns A promise that resolves to the parsed JSON data.
+ * @returns A promise that resolves to the raw data as a string.
  */
-export async function handleJsonResponse(
+export async function handleResponse(
   res: http.IncomingMessage,
-): Promise<unknown> {
+): Promise<string> {
   return new Promise((resolve, reject) => {
     let data = "";
     res.on("data", (chunk) => (data += chunk.toString()));
-    res.on("end", () => resolve(JSON.parse(data)));
+    res.on("end", () => resolve(data));
     res.on("error", (err) => reject(err));
   });
+}
+
+/**
+ * Handles an HTTPS response containing JSON data.
+ *
+ * @typeParam T - The expected type of the parsed JSON data.
+ * @param res - The HTTPS response object.
+ * @returns A promise that resolves to the parsed JSON data of type T.
+ */
+export async function handleJsonResponse<T>(
+  res: http.IncomingMessage,
+): Promise<T> {
+  const data = await handleResponse(res);
+  return JSON.parse(data);
 }
 
 /**
@@ -101,6 +115,6 @@ export async function handleJsonResponse(
 export async function handleErrorResponse(
   res: http.IncomingMessage,
 ): Promise<Error> {
-  const data = (await handleJsonResponse(res)) as { message: string };
-  return new Error(data.message);
+  const { message } = await handleJsonResponse<{ message: string }>(res);
+  return new Error(message);
 }

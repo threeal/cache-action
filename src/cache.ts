@@ -23,6 +23,6 @@ export async function reserveCache(
   if (res.statusCode !== 201) {
     throw await handleErrorResponse(res);
   }
-  const { cacheId } = (await handleJsonResponse(res)) as { cacheId: number };
+  const { cacheId } = await handleJsonResponse<{ cacheId: number }>(res);
   return cacheId;
 }

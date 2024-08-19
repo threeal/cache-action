@@ -61,18 +61,29 @@ async function sendJsonRequest(req, data) {
     });
 }
 /**
- * Handles an HTTPS response containing JSON data.
+ * Handles an HTTPS response containing raw data.
  *
  * @param res - The HTTPS response object.
- * @returns A promise that resolves to the parsed JSON data.
+ * @returns A promise that resolves to the raw data as a string.
  */
-async function handleJsonResponse(res) {
+async function handleResponse(res) {
     return new Promise((resolve, reject) => {
         let data = "";
         res.on("data", (chunk) => (data += chunk.toString()));
-        res.on("end", () => resolve(JSON.parse(data)));
+        res.on("end", () => resolve(data));
         res.on("error", (err) => reject(err));
     });
+}
+/**
+ * Handles an HTTPS response containing JSON data.
+ *
+ * @typeParam T - The expected type of the parsed JSON data.
+ * @param res - The HTTPS response object.
+ * @returns A promise that resolves to the parsed JSON data of type T.
+ */
+async function handleJsonResponse(res) {
+    const data = await handleResponse(res);
+    return JSON.parse(data);
 }
 /**
  * Handles an HTTPS response containing error data.
@@ -81,8 +92,8 @@ async function handleJsonResponse(res) {
  * @returns A promise that resolves to an error object.
  */
 async function handleErrorResponse(res) {
-    const data = (await handleJsonResponse(res));
-    return new Error(data.message);
+    const { message } = await handleJsonResponse(res);
+    return new Error(message);
 }
 
 /**
@@ -99,7 +110,7 @@ async function reserveCache(key, version, size) {
     if (res.statusCode !== 201) {
         throw await handleErrorResponse(res);
     }
-    const { cacheId } = (await handleJsonResponse(res));
+    const { cacheId } = await handleJsonResponse(res);
     return cacheId;
 }
 

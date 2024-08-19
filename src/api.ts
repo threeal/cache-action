@@ -28,6 +28,26 @@ export function createRequest(
 }
 
 /**
+ * Sends an HTTPS request containing raw data.
+ *
+ * @param req - The HTTPS request object.
+ * @param data - The raw data to be sent in the request body.
+ * @returns A promise that resolves to an HTTPS response object.
+ */
+export async function sendRequest(
+  req: http.ClientRequest,
+  data?: string,
+): Promise<http.IncomingMessage> {
+  return new Promise((resolve, reject) => {
+    req.on("response", (res) => resolve(res));
+    req.on("error", (err) => reject(err));
+
+    if (data !== undefined) req.write(data);
+    req.end();
+  });
+}
+
+/**
  * Sends an HTTPS request containing JSON data.
  *
  * @param req - The HTTPS request object.
@@ -38,15 +58,8 @@ export async function sendJsonRequest(
   req: http.ClientRequest,
   data: unknown,
 ): Promise<http.IncomingMessage> {
-  return new Promise((resolve, reject) => {
-    req.setHeader("Content-Type", "application/json");
-
-    req.on("response", (res) => resolve(res));
-    req.on("error", (err) => reject(err));
-
-    req.write(JSON.stringify(data));
-    req.end();
-  });
+  req.setHeader("Content-Type", "application/json");
+  return sendRequest(req, JSON.stringify(data));
 }
 
 /**

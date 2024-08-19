@@ -84,12 +84,11 @@ export async function sendStreamRequest(
 export async function handleJsonResponse(
   res: http.IncomingMessage,
 ): Promise<unknown> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     let data = "";
     res.on("data", (chunk) => (data += chunk.toString()));
-    res.on("end", () => {
-      resolve(JSON.parse(data));
-    });
+    res.on("end", () => resolve(JSON.parse(data)));
+    res.on("error", (err) => reject(err));
   });
 }
 

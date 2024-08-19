@@ -74,7 +74,24 @@ class MockedReadable {
   }
 }
 
-class MockedResponse extends MockedReadable {}
+class MockedResponse extends MockedReadable {
+  #onError?: (err: Error) => void;
+
+  on(event: string, callback: any): void {
+    switch (event) {
+      case "error":
+        this.#onError = callback;
+        break;
+
+      default:
+        super.on(event, callback);
+    }
+  }
+
+  error(err: Error): void {
+    if (this.#onError !== undefined) this.#onError(err);
+  }
+}
 
 const https = {
   request: jest.fn(),
@@ -175,6 +192,17 @@ describe("handle HTTPS responses containing JSON data", () => {
     res.end();
 
     await expect(prom).resolves.toEqual({ message: "some message" });
+  });
+
+  it("should fail to handle an HTTPS response", async () => {
+    const { handleJsonResponse } = await import("./api.js");
+
+    const res = new MockedResponse();
+    const prom = handleJsonResponse(res as any);
+
+    res.error(new Error("some error"));
+
+    await expect(prom).rejects.toThrow("some error");
   });
 });
 

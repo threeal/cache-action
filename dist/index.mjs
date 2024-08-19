@@ -77,8 +77,9 @@ async function handleResponse(res) {
 /**
  * Handles an HTTPS response containing JSON data.
  *
+ * @typeParam T - The expected type of the parsed JSON data.
  * @param res - The HTTPS response object.
- * @returns A promise that resolves to the parsed JSON data.
+ * @returns A promise that resolves to the parsed JSON data of type T.
  */
 async function handleJsonResponse(res) {
     const data = await handleResponse(res);
@@ -91,8 +92,8 @@ async function handleJsonResponse(res) {
  * @returns A promise that resolves to an error object.
  */
 async function handleErrorResponse(res) {
-    const data = (await handleJsonResponse(res));
-    return new Error(data.message);
+    const { message } = await handleJsonResponse(res);
+    return new Error(message);
 }
 
 /**
@@ -109,7 +110,7 @@ async function reserveCache(key, version, size) {
     if (res.statusCode !== 201) {
         throw await handleErrorResponse(res);
     }
-    const { cacheId } = (await handleJsonResponse(res));
+    const { cacheId } = await handleJsonResponse(res);
     return cacheId;
 }
 

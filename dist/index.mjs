@@ -61,18 +61,28 @@ async function sendJsonRequest(req, data) {
     });
 }
 /**
+ * Handles an HTTPS response containing raw data.
+ *
+ * @param res - The HTTPS response object.
+ * @returns A promise that resolves to the raw data as a string.
+ */
+async function handleResponse(res) {
+    return new Promise((resolve, reject) => {
+        let data = "";
+        res.on("data", (chunk) => (data += chunk.toString()));
+        res.on("end", () => resolve(data));
+        res.on("error", (err) => reject(err));
+    });
+}
+/**
  * Handles an HTTPS response containing JSON data.
  *
  * @param res - The HTTPS response object.
  * @returns A promise that resolves to the parsed JSON data.
  */
 async function handleJsonResponse(res) {
-    return new Promise((resolve, reject) => {
-        let data = "";
-        res.on("data", (chunk) => (data += chunk.toString()));
-        res.on("end", () => resolve(JSON.parse(data)));
-        res.on("error", (err) => reject(err));
-    });
+    const data = await handleResponse(res);
+    return JSON.parse(data);
 }
 /**
  * Handles an HTTPS response containing error data.

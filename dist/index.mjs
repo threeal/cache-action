@@ -97,7 +97,7 @@ async function handleErrorResponse(res) {
 }
 
 /**
- * Reserve a cache with the specified key, version, and size.
+ * Reserves a cache with the specified key, version, and size.
  *
  * @param key - The key of the cache to reserve.
  * @param version - The version of the cache to reserve.

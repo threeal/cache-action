@@ -1,12 +1,16 @@
+import stream from "node:stream";
+
 import {
   createRequest,
-  handleJsonResponse,
   handleErrorResponse,
+  handleJsonResponse,
+  handleResponse,
   sendJsonRequest,
+  sendStreamRequest,
 } from "./api.js";
 
 /**
- * Reserve a cache with the specified key, version, and size.
+ * Reserves a cache with the specified key, version, and size.
  *
  * @param key - The key of the cache to reserve.
  * @param version - The version of the cache to reserve.
@@ -25,4 +29,25 @@ export async function reserveCache(
   }
   const { cacheId } = await handleJsonResponse<{ cacheId: number }>(res);
   return cacheId;
+}
+
+/**
+ * Uploads a file to a cache with the specified ID.
+ *
+ * @param id - The cache ID.
+ * @param file - The readable stream of the file to upload.
+ * @param fileSize - The size of the file to upload, in bytes.
+ * @returns A promise that resolves with nothing.
+ */
+export async function uploadCache(
+  id: number,
+  file: stream.Readable,
+  fileSize: number,
+): Promise<void> {
+  const req = createRequest(`caches/${id}`, { method: "PATCH" });
+  const res = await sendStreamRequest(req, file, 0, fileSize);
+  if (res.statusCode !== 204) {
+    throw await handleErrorResponse(res);
+  }
+  handleResponse(res);
 }

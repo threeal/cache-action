@@ -3,13 +3,17 @@ import { jest } from "@jest/globals";
 const createRequest = jest.fn();
 const handleErrorResponse = jest.fn();
 const handleJsonResponse = jest.fn();
+const handleResponse = jest.fn();
 const sendJsonRequest = jest.fn();
+const sendStreamRequest = jest.fn();
 
 jest.unstable_mockModule("./api.js", () => ({
   createRequest,
   handleErrorResponse,
   handleJsonResponse,
+  handleResponse,
   sendJsonRequest,
+  sendStreamRequest,
 }));
 
 describe("reserve caches", () => {

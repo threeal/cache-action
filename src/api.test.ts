@@ -67,6 +67,11 @@ class MockedReadable {
   end(): void {
     if (this.#onEnd !== undefined) this.#onEnd();
   }
+
+  pipe(writable: MockedWritable): void {
+    this.on("data", (chunk: any) => writable.write(chunk));
+    this.on("end", () => writable.end());
+  }
 }
 
 class MockedResponse extends MockedReadable {}
@@ -116,10 +121,42 @@ describe("send HTTPS requests containing JSON data", () => {
   it("should fail to send an HTTPS request", async () => {
     const { sendJsonRequest } = await import("./api.js");
 
-    process.env["ACTIONS_CACHE_URL"] = "http://invalid/";
-
     const req = new MockedRequest();
     const prom = sendJsonRequest(req as any, {});
+
+    req.error(new Error("some error"));
+
+    await expect(prom).rejects.toThrow("some error");
+  });
+});
+
+describe("send HTTPS requests containing binary streams", () => {
+  it("should send an HTTPS request", async () => {
+    const { sendStreamRequest } = await import("./api.js");
+
+    const req = new MockedRequest();
+    const bin = new MockedReadable();
+    const prom = sendStreamRequest(req as any, bin as any, 0, 1024);
+
+    bin.write("some data");
+    bin.end();
+
+    req.response("some response");
+
+    await expect(prom).resolves.toBe("some response");
+    expect(req.headers).toEqual({
+      "Content-Type": "application/octet-stream",
+      "Content-Range": "bytes 0-1024/*",
+    });
+    expect(req.data).toBe("some data");
+  });
+
+  it("should fail to send an HTTPS request", async () => {
+    const { sendStreamRequest } = await import("./api.js");
+
+    const req = new MockedRequest();
+    const bin = new MockedReadable();
+    const prom = sendStreamRequest(req as any, bin as any, 0, 1024);
 
     req.error(new Error("some error"));
 

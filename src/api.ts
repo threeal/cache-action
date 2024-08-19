@@ -1,5 +1,6 @@
 import http from "node:http";
 import https from "node:https";
+import stream from "node:stream";
 
 /**
  * Creates an HTTPS request for the GitHub cache API endpoint.
@@ -45,6 +46,32 @@ export async function sendJsonRequest(
 
     req.write(JSON.stringify(data));
     req.end();
+  });
+}
+
+/**
+ * Sends an HTTPS request containing a binary stream.
+ *
+ * @param req - The HTTPS request object.
+ * @param bin - The binary stream to be sent in the request body.
+ * @param start - The starting byte of the binary stream.
+ * @param end - The ending byte of the binary stream.
+ * @returns A promise that resolves to an HTTPS response object.
+ */
+export async function sendStreamRequest(
+  req: http.ClientRequest,
+  bin: stream.Readable,
+  start: number,
+  end: number,
+): Promise<http.IncomingMessage> {
+  return new Promise((resolve, reject) => {
+    req.setHeader("Content-Type", "application/octet-stream");
+    req.setHeader("Content-Range", `bytes ${start}-${end}/*`);
+
+    req.on("response", (res) => resolve(res));
+    req.on("error", (err) => reject(err));
+
+    bin.pipe(req);
   });
 }
 

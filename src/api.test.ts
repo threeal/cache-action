@@ -1,17 +1,8 @@
 import { jest } from "@jest/globals";
 
-class MockedRequest {
-  headers: Record<string, string> = {};
-
+class MockedWritable {
   #writtenData = "";
   data?: string;
-
-  #onResponse?: (res: any) => void;
-  #onError?: (err: Error) => void;
-
-  setHeader(name: string, value: string): void {
-    this.headers[name] = value;
-  }
 
   write(chunk: any): void {
     this.#writtenData += chunk;
@@ -19,6 +10,17 @@ class MockedRequest {
 
   end(): void {
     this.data = this.#writtenData;
+  }
+}
+
+class MockedRequest extends MockedWritable {
+  headers: Record<string, string> = {};
+
+  #onResponse?: (res: any) => void;
+  #onError?: (err: Error) => void;
+
+  setHeader(name: string, value: string): void {
+    this.headers[name] = value;
   }
 
   on(event: string, callback: any): void {
@@ -42,7 +44,7 @@ class MockedRequest {
   }
 }
 
-class MockedResponse {
+class MockedReadable {
   #onData?: (chunk: any) => void;
   #onEnd?: () => void;
 
@@ -58,14 +60,21 @@ class MockedResponse {
     }
   }
 
-  data(chunk: any): void {
+  write(chunk: any): void {
     if (this.#onData !== undefined) this.#onData(chunk);
   }
 
   end(): void {
     if (this.#onEnd !== undefined) this.#onEnd();
   }
+
+  pipe(writable: MockedWritable): void {
+    this.on("data", (chunk: any) => writable.write(chunk));
+    this.on("end", () => writable.end());
+  }
 }
+
+class MockedResponse extends MockedReadable {}
 
 const https = {
   request: jest.fn(),
@@ -112,10 +121,42 @@ describe("send HTTPS requests containing JSON data", () => {
   it("should fail to send an HTTPS request", async () => {
     const { sendJsonRequest } = await import("./api.js");
 
-    process.env["ACTIONS_CACHE_URL"] = "http://invalid/";
-
     const req = new MockedRequest();
     const prom = sendJsonRequest(req as any, {});
+
+    req.error(new Error("some error"));
+
+    await expect(prom).rejects.toThrow("some error");
+  });
+});
+
+describe("send HTTPS requests containing binary streams", () => {
+  it("should send an HTTPS request", async () => {
+    const { sendStreamRequest } = await import("./api.js");
+
+    const req = new MockedRequest();
+    const bin = new MockedReadable();
+    const prom = sendStreamRequest(req as any, bin as any, 0, 1024);
+
+    bin.write("some data");
+    bin.end();
+
+    req.response("some response");
+
+    await expect(prom).resolves.toBe("some response");
+    expect(req.headers).toEqual({
+      "Content-Type": "application/octet-stream",
+      "Content-Range": "bytes 0-1024/*",
+    });
+    expect(req.data).toBe("some data");
+  });
+
+  it("should fail to send an HTTPS request", async () => {
+    const { sendStreamRequest } = await import("./api.js");
+
+    const req = new MockedRequest();
+    const bin = new MockedReadable();
+    const prom = sendStreamRequest(req as any, bin as any, 0, 1024);
 
     req.error(new Error("some error"));
 
@@ -130,7 +171,7 @@ describe("handle HTTPS responses containing JSON data", () => {
     const res = new MockedResponse();
     const prom = handleJsonResponse(res as any);
 
-    res.data(JSON.stringify({ message: "some message" }));
+    res.write(JSON.stringify({ message: "some message" }));
     res.end();
 
     await expect(prom).resolves.toEqual({ message: "some message" });
@@ -144,7 +185,7 @@ describe("handle HTTPS responses containing error data", () => {
     const res = new MockedResponse();
     const prom = handleErrorResponse(res as any);
 
-    res.data(JSON.stringify({ message: "some error" }));
+    res.write(JSON.stringify({ message: "some error" }));
     res.end();
 
     await expect(prom).resolves.toEqual(new Error("some error"));

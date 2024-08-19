@@ -156,7 +156,7 @@ async function uploadCache(id, file, fileSize) {
     if (res.statusCode !== 204) {
         throw await handleErrorResponse(res);
     }
-    handleResponse(res);
+    await handleResponse(res);
 }
 /**
  * Commits a cache with the specified ID.
@@ -171,7 +171,7 @@ async function commitCache(id, size) {
     if (res.statusCode !== 204) {
         throw await handleErrorResponse(res);
     }
-    handleResponse(res);
+    await handleResponse(res);
 }
 
 try {

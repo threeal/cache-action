@@ -121,6 +121,32 @@ describe("create HTTPS requests for the GitHub cache API endpoint", () => {
   });
 });
 
+describe("send HTTPS requests containing raw data", () => {
+  it("should send an HTTPS request", async () => {
+    const { sendRequest } = await import("./api.js");
+
+    const req = new MockedRequest();
+    const prom = sendRequest(req as any, "some data");
+
+    req.response("some response");
+
+    await expect(prom).resolves.toBe("some response");
+    expect(req.headers).toEqual({});
+    expect(req.data).toBe("some data");
+  });
+
+  it("should fail to send an HTTPS request", async () => {
+    const { sendRequest } = await import("./api.js");
+
+    const req = new MockedRequest();
+    const prom = sendRequest(req as any);
+
+    req.error(new Error("some error"));
+
+    await expect(prom).rejects.toThrow("some error");
+  });
+});
+
 describe("send HTTPS requests containing JSON data", () => {
   it("should send an HTTPS request", async () => {
     const { sendJsonRequest } = await import("./api.js");
@@ -133,17 +159,6 @@ describe("send HTTPS requests containing JSON data", () => {
     await expect(prom).resolves.toBe("some response");
     expect(req.headers).toEqual({ "Content-Type": "application/json" });
     expect(req.data).toBe(JSON.stringify({ message: "some message" }));
-  });
-
-  it("should fail to send an HTTPS request", async () => {
-    const { sendJsonRequest } = await import("./api.js");
-
-    const req = new MockedRequest();
-    const prom = sendJsonRequest(req as any, {});
-
-    req.error(new Error("some error"));
-
-    await expect(prom).rejects.toThrow("some error");
   });
 });
 

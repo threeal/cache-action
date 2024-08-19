@@ -181,6 +181,31 @@ describe("send HTTPS requests containing binary streams", () => {
   });
 });
 
+describe("handle HTTPS responses containing raw data", () => {
+  it("should handle an HTTPS response", async () => {
+    const { handleResponse } = await import("./api.js");
+
+    const res = new MockedResponse();
+    const prom = handleResponse(res as any);
+
+    res.write("some data");
+    res.end();
+
+    await expect(prom).resolves.toEqual("some data");
+  });
+
+  it("should fail to handle an HTTPS response", async () => {
+    const { handleResponse } = await import("./api.js");
+
+    const res = new MockedResponse();
+    const prom = handleResponse(res as any);
+
+    res.error(new Error("some error"));
+
+    await expect(prom).rejects.toThrow("some error");
+  });
+});
+
 describe("handle HTTPS responses containing JSON data", () => {
   it("should handle an HTTPS response", async () => {
     const { handleJsonResponse } = await import("./api.js");
@@ -192,17 +217,6 @@ describe("handle HTTPS responses containing JSON data", () => {
     res.end();
 
     await expect(prom).resolves.toEqual({ message: "some message" });
-  });
-
-  it("should fail to handle an HTTPS response", async () => {
-    const { handleJsonResponse } = await import("./api.js");
-
-    const res = new MockedResponse();
-    const prom = handleJsonResponse(res as any);
-
-    res.error(new Error("some error"));
-
-    await expect(prom).rejects.toThrow("some error");
   });
 });
 

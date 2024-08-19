@@ -1,132 +1,152 @@
 import { jest } from "@jest/globals";
-import http from "node:http";
 
-jest.unstable_mockModule("node:https", () => ({ default: http }));
+class MockedRequest {
+  headers: Record<string, string> = {};
 
-let server: http.Server;
-let serverHandler: (
-  req: http.IncomingMessage,
-  res: http.ServerResponse,
-) => boolean;
+  #writtenData = "";
+  data?: string;
 
-beforeAll(() => {
-  server = http.createServer((req, res) => {
-    if (!serverHandler(req, res)) {
-      res.writeHead(404);
-      res.end();
+  #onResponse?: (res: any) => void;
+  #onError?: (err: Error) => void;
+
+  setHeader(name: string, value: string): void {
+    this.headers[name] = value;
+  }
+
+  write(chunk: any): void {
+    this.#writtenData += chunk;
+  }
+
+  end(): void {
+    this.data = this.#writtenData;
+  }
+
+  on(event: string, callback: any): void {
+    switch (event) {
+      case "response":
+        this.#onResponse = callback;
+        break;
+
+      case "error":
+        this.#onError = callback;
+        break;
     }
-  });
+  }
 
-  server.listen(12345);
-});
+  response(res: any): void {
+    if (this.#onResponse !== undefined) this.#onResponse(res);
+  }
 
-beforeEach(() => {
-  process.env["ACTIONS_CACHE_URL"] = "http://localhost:12345/";
-  process.env["ACTIONS_RUNTIME_TOKEN"] = "some token";
+  error(err: Error): void {
+    if (this.#onError !== undefined) this.#onError(err);
+  }
+}
 
-  serverHandler = () => false;
-});
+class MockedResponse {
+  #onData?: (chunk: any) => void;
+  #onEnd?: () => void;
+
+  on(event: string, callback: any): void {
+    switch (event) {
+      case "data":
+        this.#onData = callback;
+        break;
+
+      case "end":
+        this.#onEnd = callback;
+        break;
+    }
+  }
+
+  data(chunk: any): void {
+    if (this.#onData !== undefined) this.#onData(chunk);
+  }
+
+  end(): void {
+    if (this.#onEnd !== undefined) this.#onEnd();
+  }
+}
+
+const https = {
+  request: jest.fn(),
+};
+
+jest.unstable_mockModule("node:https", () => ({ default: https }));
 
 describe("create HTTPS requests for the GitHub cache API endpoint", () => {
   it("should create an HTTPS request", async () => {
     const { createRequest } = await import("./api.js");
 
-    const req = createRequest("caches", { method: "GET" });
-    req.end();
+    process.env["ACTIONS_CACHE_URL"] = "http://localhost:12345/";
+    process.env["ACTIONS_RUNTIME_TOKEN"] = "some token";
 
-    expect(req.path).toBe("/_apis/artifactcache/caches");
-    expect(req.method).toBe("GET");
+    https.request.mockImplementation((url, options) => {
+      expect(url).toBe("http://localhost:12345/_apis/artifactcache/resources");
+      expect(options).toBe("some options");
+      return new MockedRequest();
+    });
 
-    expect(req.getHeader("Accept")).toBe(
-      "application/json;api-version=6.0-preview",
-    );
+    const req = createRequest("resources", "some options" as any) as any;
 
-    expect(req.getHeader("Authorization")).toBe("Bearer some token");
+    expect(req.headers).toEqual({
+      Accept: "application/json;api-version=6.0-preview",
+      Authorization: "Bearer some token",
+    });
   });
 });
 
-describe("send requests containing JSON data", () => {
-  it("should send a request to a valid endpoint", async () => {
-    const { createRequest, sendJsonRequest } = await import("./api.js");
+describe("send HTTPS requests containing JSON data", () => {
+  it("should send an HTTPS request", async () => {
+    const { sendJsonRequest } = await import("./api.js");
 
-    serverHandler = (req, res) => {
-      if (req.method !== "POST") return false;
-      if (req.url !== "/_apis/artifactcache/caches") return false;
+    const req = new MockedRequest();
+    const prom = sendJsonRequest(req as any, { message: "some message" });
 
-      let rawData = "";
-      req.on("data", (chunk) => (rawData += chunk.toString()));
-      req.on("end", () => {
-        const data = JSON.parse(rawData);
-        res.writeHead(data.message == "some message" ? 200 : 400);
-        res.end(" ");
-      });
-      return true;
-    };
+    req.response("some response");
 
-    const req = createRequest("caches", { method: "POST" });
-
-    const res = await sendJsonRequest(req, { message: "some message" });
-    expect(res.statusCode).toEqual(200);
+    await expect(prom).resolves.toBe("some response");
+    expect(req.headers).toEqual({ "Content-Type": "application/json" });
+    expect(req.data).toBe(JSON.stringify({ message: "some message" }));
   });
 
-  it("should fail to send a request to an invalid endpoint", async () => {
-    const { createRequest, sendJsonRequest } = await import("./api.js");
+  it("should fail to send an HTTPS request", async () => {
+    const { sendJsonRequest } = await import("./api.js");
 
     process.env["ACTIONS_CACHE_URL"] = "http://invalid/";
 
-    const req = createRequest("caches", { method: "POST" });
-    await expect(sendJsonRequest(req, {})).rejects.toThrow();
+    const req = new MockedRequest();
+    const prom = sendJsonRequest(req as any, {});
+
+    req.error(new Error("some error"));
+
+    await expect(prom).rejects.toThrow("some error");
   });
 });
 
-describe("handle responses containing JSON data", () => {
-  it("should handle a response", async () => {
-    const { createRequest, handleJsonResponse } = await import("./api.js");
+describe("handle HTTPS responses containing JSON data", () => {
+  it("should handle an HTTPS response", async () => {
+    const { handleJsonResponse } = await import("./api.js");
 
-    serverHandler = (req, res) => {
-      if (req.method !== "GET") return false;
-      if (req.url !== "/_apis/artifactcache/caches") return false;
+    const res = new MockedResponse();
+    const prom = handleJsonResponse(res as any);
 
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ message: "some message" }));
-      return true;
-    };
+    res.data(JSON.stringify({ message: "some message" }));
+    res.end();
 
-    const req = createRequest("caches", { method: "GET" });
-
-    const res = await new Promise<http.IncomingMessage>((resolve, reject) => {
-      req.on("response", (res) => resolve(res));
-      req.on("error", (err) => reject(err));
-      req.end();
-    });
-    expect(res.statusCode).toEqual(200);
-
-    const data = await handleJsonResponse(res);
-    expect(data).toEqual({ message: "some message" });
+    await expect(prom).resolves.toEqual({ message: "some message" });
   });
 });
 
-describe("handle responses containing error data", () => {
-  it("should handle a response", async () => {
-    const { createRequest, handleErrorResponse } = await import("./api.js");
+describe("handle HTTPS responses containing error data", () => {
+  it("should handle an HTTPS response", async () => {
+    const { handleErrorResponse } = await import("./api.js");
 
-    serverHandler = (req, res) => {
-      res.writeHead(500, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ message: "some error" }));
-      return true;
-    };
+    const res = new MockedResponse();
+    const prom = handleErrorResponse(res as any);
 
-    const req = createRequest("caches", { method: "GET" });
+    res.data(JSON.stringify({ message: "some error" }));
+    res.end();
 
-    const res = await new Promise<http.IncomingMessage>((resolve, reject) => {
-      req.on("response", (res) => resolve(res));
-      req.on("error", (err) => reject(err));
-      req.end();
-    });
-
-    const err = await handleErrorResponse(res);
-    expect(err.message).toBe("some error");
+    await expect(prom).resolves.toEqual(new Error("some error"));
   });
 });
-
-afterAll(() => server.close());

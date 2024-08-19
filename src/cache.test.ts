@@ -117,3 +117,47 @@ describe("upload files to caches", () => {
     await expect(prom).rejects.toThrow("some error");
   });
 });
+
+describe("commit caches", () => {
+  beforeAll(() => {
+    createRequest.mockImplementation((resourcePath, options) => {
+      expect(resourcePath).toBe("caches/32");
+      expect(options).toEqual({ method: "POST" });
+      return "some request";
+    });
+  });
+
+  it("should commit a cache", async () => {
+    const { commitCache } = await import("./cache.js");
+
+    sendJsonRequest.mockImplementation(async (req, data) => {
+      expect(req).toBe("some request");
+      expect(data).toEqual({ size: 1024 });
+      return { statusCode: 204 };
+    });
+
+    handleResponse.mockImplementation(async (res) => {
+      expect(res).toEqual({ statusCode: 204 });
+    });
+
+    await commitCache(32, 1024);
+  });
+
+  it("should fail to commit a cache", async () => {
+    const { commitCache } = await import("./cache.js");
+
+    sendJsonRequest.mockImplementation(async (req, data) => {
+      expect(req).toBe("some request");
+      expect(data).toEqual({ size: 1024 });
+      return { statusCode: 500 };
+    });
+
+    handleErrorResponse.mockImplementation(async (res) => {
+      expect(res).toEqual({ statusCode: 500 });
+      return new Error("some error");
+    });
+
+    const prom = commitCache(32, 1024);
+    await expect(prom).rejects.toThrow("some error");
+  });
+});

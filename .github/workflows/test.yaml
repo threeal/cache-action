@@ -42,9 +42,13 @@ jobs:
             dist
           sparse-checkout-cone-mode: false
 
+      - name: Prepare File
+        shell: bash
+        run: echo "some value" >> file.txt
+
       - name: Reserve Cache
         uses: ./cache-action
         with:
           key: some-key-${{ matrix.os }}
           version: ${{ github.run_id }}
-          size: 1024
+          file: file.txt

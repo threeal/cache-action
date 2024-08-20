@@ -1,6 +1,12 @@
 import { getInput, logError, logInfo } from "gha-utils";
 import fs from "node:fs";
-import { commitCache, getCache, reserveCache, uploadCache } from "./cache.js";
+
+import {
+  commitCache,
+  getCache,
+  reserveCache,
+  uploadCache,
+} from "./api/cache.js";
 
 try {
   const key = getInput("key");

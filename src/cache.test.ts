@@ -8,7 +8,7 @@ const sendJsonRequest = jest.fn();
 const sendRequest = jest.fn();
 const sendStreamRequest = jest.fn();
 
-jest.unstable_mockModule("./api.js", () => ({
+jest.unstable_mockModule("./api/https.js", () => ({
   createRequest,
   handleErrorResponse,
   handleJsonResponse,

@@ -8,7 +8,7 @@ import {
   sendJsonRequest,
   sendRequest,
   sendStreamRequest,
-} from "./api.js";
+} from "./api/https.js";
 
 interface Cache {
   scope: string;

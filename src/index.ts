@@ -8,7 +8,7 @@ import {
   uploadCache,
 } from "./api/cache.js";
 
-import { downloadFile } from "./download.js";
+import { downloadFile } from "./api/download.js";
 
 try {
   const key = getInput("key");

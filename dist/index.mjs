@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import 'node:path';
 import https from 'node:https';
+import stream from 'node:stream/promises';
 
 /**
  * Retrieves the value of a GitHub Actions input.
@@ -197,16 +198,33 @@ async function commitCache(id, size) {
     await handleResponse(res);
 }
 
+/**
+ * Downloads a file from the specified URL and saves it to the provided path.
+ *
+ * @param url - The URL of the file to download.
+ * @param savePath - The path where the downloaded file will be saved.
+ * @returns A promise that resolves when the download is complete.
+ */
+async function downloadFile(url, savePath) {
+    const req = https.request(url);
+    const res = await sendRequest(req);
+    const file = fs.createWriteStream(savePath);
+    await stream.pipeline(res, file);
+}
+
 try {
     const key = getInput("key");
     const version = getInput("version");
+    const filePath = getInput("file");
     logInfo("Getting cache...");
     const cache = await getCache(key, version);
     if (cache !== null) {
-        logInfo("Cache exists, skipping upload...");
+        logInfo("Cache exists, restoring...");
+        await downloadFile(cache.archiveLocation, filePath);
+        logInfo("Cache restored");
         process.exit(0);
     }
-    const filePath = getInput("file");
+    logInfo("Cache does not exist, saving...");
     const fileSize = fs.statSync(filePath).size;
     logInfo("Reserving cache...");
     const cacheId = await reserveCache(key, version, fileSize);

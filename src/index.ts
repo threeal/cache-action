@@ -8,18 +8,24 @@ import {
   uploadCache,
 } from "./api/cache.js";
 
+import { downloadFile } from "./download.js";
+
 try {
   const key = getInput("key");
   const version = getInput("version");
+  const filePath = getInput("file");
 
   logInfo("Getting cache...");
   const cache = await getCache(key, version);
   if (cache !== null) {
-    logInfo("Cache exists, skipping upload...");
+    logInfo("Cache exists, restoring...");
+    await downloadFile(cache.archiveLocation, filePath);
+    logInfo("Cache restored");
+
     process.exit(0);
   }
+  logInfo("Cache does not exist, saving...");
 
-  const filePath = getInput("file");
   const fileSize = fs.statSync(filePath).size;
 
   logInfo("Reserving cache...");

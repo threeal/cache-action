@@ -53,9 +53,17 @@ jobs:
           version: ${{ github.run_id }}
           file: file.txt
 
-      - name: Save Cache Again
+      - name: Remove File
+        shell: bash
+        run: rm file.txt
+
+      - name: Restore Cache
         uses: ./cache-action
         with:
           key: some-key-${{ matrix.os }}
           version: ${{ github.run_id }}
           file: file.txt
+
+      - name: Check File
+        shell: bash
+        run: test "$(cat file.txt)" == "some value"

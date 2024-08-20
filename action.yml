@@ -1,18 +1,18 @@
 name: Cache Action
 author: Alfi Maulana
-description: Save caches
+description: Restore and save files to cache
 branding:
   icon: archive
   color: black
 inputs:
   key:
-    description: The key of the cache
+    description: The cache key
     required: true
   version:
-    description: The version of the cache
+    description: The cache version
     required: true
   file:
-    description: The file to cache
+    description: The file to be cached
     required: true
 runs:
   using: node20

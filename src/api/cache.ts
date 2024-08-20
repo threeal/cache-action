@@ -1,5 +1,3 @@
-import type stream from "node:stream";
-
 import {
   createRequest,
   handleErrorResponse,
@@ -8,7 +6,9 @@ import {
   sendJsonRequest,
   sendRequest,
   sendStreamRequest,
-} from "./api.js";
+} from "./https.js";
+
+import type stream from "node:stream";
 
 interface Cache {
   scope: string;

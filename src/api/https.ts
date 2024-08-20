@@ -1,6 +1,7 @@
-import http from "node:http";
 import https from "node:https";
-import stream from "node:stream";
+
+import type http from "node:http";
+import type stream from "node:stream";
 
 /**
  * Creates an HTTPS request for the GitHub cache API endpoint.

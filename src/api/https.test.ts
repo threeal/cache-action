@@ -101,7 +101,7 @@ jest.unstable_mockModule("node:https", () => ({ default: https }));
 
 describe("create HTTPS requests for the GitHub cache API endpoint", () => {
   it("should create an HTTPS request", async () => {
-    const { createRequest } = await import("./api.js");
+    const { createRequest } = await import("./https.js");
 
     process.env["ACTIONS_CACHE_URL"] = "http://localhost:12345/";
     process.env["ACTIONS_RUNTIME_TOKEN"] = "some token";
@@ -123,7 +123,7 @@ describe("create HTTPS requests for the GitHub cache API endpoint", () => {
 
 describe("send HTTPS requests containing raw data", () => {
   it("should send an HTTPS request", async () => {
-    const { sendRequest } = await import("./api.js");
+    const { sendRequest } = await import("./https.js");
 
     const req = new MockedRequest();
     const prom = sendRequest(req as any, "some data");
@@ -136,7 +136,7 @@ describe("send HTTPS requests containing raw data", () => {
   });
 
   it("should fail to send an HTTPS request", async () => {
-    const { sendRequest } = await import("./api.js");
+    const { sendRequest } = await import("./https.js");
 
     const req = new MockedRequest();
     const prom = sendRequest(req as any);
@@ -149,7 +149,7 @@ describe("send HTTPS requests containing raw data", () => {
 
 describe("send HTTPS requests containing JSON data", () => {
   it("should send an HTTPS request", async () => {
-    const { sendJsonRequest } = await import("./api.js");
+    const { sendJsonRequest } = await import("./https.js");
 
     const req = new MockedRequest();
     const prom = sendJsonRequest(req as any, { message: "some message" });
@@ -164,7 +164,7 @@ describe("send HTTPS requests containing JSON data", () => {
 
 describe("send HTTPS requests containing binary streams", () => {
   it("should send an HTTPS request", async () => {
-    const { sendStreamRequest } = await import("./api.js");
+    const { sendStreamRequest } = await import("./https.js");
 
     const req = new MockedRequest();
     const bin = new MockedReadable();
@@ -184,7 +184,7 @@ describe("send HTTPS requests containing binary streams", () => {
   });
 
   it("should fail to send an HTTPS request", async () => {
-    const { sendStreamRequest } = await import("./api.js");
+    const { sendStreamRequest } = await import("./https.js");
 
     const req = new MockedRequest();
     const bin = new MockedReadable();
@@ -198,7 +198,7 @@ describe("send HTTPS requests containing binary streams", () => {
 
 describe("handle HTTPS responses containing raw data", () => {
   it("should handle an HTTPS response", async () => {
-    const { handleResponse } = await import("./api.js");
+    const { handleResponse } = await import("./https.js");
 
     const res = new MockedResponse();
     const prom = handleResponse(res as any);
@@ -210,7 +210,7 @@ describe("handle HTTPS responses containing raw data", () => {
   });
 
   it("should fail to handle an HTTPS response", async () => {
-    const { handleResponse } = await import("./api.js");
+    const { handleResponse } = await import("./https.js");
 
     const res = new MockedResponse();
     const prom = handleResponse(res as any);
@@ -223,7 +223,7 @@ describe("handle HTTPS responses containing raw data", () => {
 
 describe("handle HTTPS responses containing JSON data", () => {
   it("should handle an HTTPS response", async () => {
-    const { handleJsonResponse } = await import("./api.js");
+    const { handleJsonResponse } = await import("./https.js");
 
     const res = new MockedResponse();
     const prom = handleJsonResponse(res as any);
@@ -237,7 +237,7 @@ describe("handle HTTPS responses containing JSON data", () => {
 
 describe("handle HTTPS responses containing error data", () => {
   it("should handle an HTTPS response", async () => {
-    const { handleErrorResponse } = await import("./api.js");
+    const { handleErrorResponse } = await import("./https.js");
 
     const res = new MockedResponse();
     const prom = handleErrorResponse(res as any);

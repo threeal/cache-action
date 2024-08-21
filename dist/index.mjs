@@ -217,7 +217,7 @@ async function downloadFile(url, savePath) {
  *
  * @param key - The cache key.
  * @param version - The cache version.
- * @param filePath - The path to the file to be restored.
+ * @param filePath - The path of the file to be restored.
  * @returns A promise that resolves to a boolean value indicating whether the
  * file was successfully restored.
  */
@@ -227,6 +227,26 @@ async function restoreCache(key, version, filePath) {
         return false;
     await downloadFile(cache.archiveLocation, filePath);
     return true;
+}
+/**
+ * Saves a file to the cache using the specified key and version.
+ *
+ * @param key - The cache key.
+ * @param version - The cache version.
+ * @param filePath - The path of the file to be saved.
+ * @returns A promise that resolves when the file has been successfully saved.
+ */
+async function saveCache(key, version, filePath) {
+    const fileSize = fs.statSync(filePath).size;
+    const cacheId = await reserveCache(key, version, fileSize);
+    const file = fs.createReadStream(filePath, {
+        fd: fs.openSync(filePath, "r"),
+        autoClose: false,
+        start: 0,
+        end: fileSize,
+    });
+    await uploadCache(cacheId, file, fileSize);
+    await commitCache(cacheId, fileSize);
 }
 
 try {
@@ -239,22 +259,8 @@ try {
         process.exit(0);
     }
     logInfo("Cache does not exist, saving...");
-    const fileSize = fs.statSync(filePath).size;
-    logInfo("Reserving cache...");
-    const cacheId = await reserveCache(key, version, fileSize);
-    logInfo(`Cache reserved with id: ${cacheId}`);
-    logInfo("Uploading cache...");
-    const file = fs.createReadStream(filePath, {
-        fd: fs.openSync(filePath, "r"),
-        autoClose: false,
-        start: 0,
-        end: fileSize,
-    });
-    await uploadCache(cacheId, file, fileSize);
-    logInfo("Cache uploaded");
-    logInfo("Commiting cache...");
-    await commitCache(cacheId, fileSize);
-    logInfo("Cache committed");
+    await saveCache(key, version, filePath);
+    logInfo("Cache successfully saved");
 }
 catch (err) {
     logError(err);

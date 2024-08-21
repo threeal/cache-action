@@ -212,16 +212,30 @@ async function downloadFile(url, savePath) {
     await stream.pipeline(res, file);
 }
 
+/**
+ * Restores a file from the cache using the specified key and version.
+ *
+ * @param key - The cache key.
+ * @param version - The cache version.
+ * @param filePath - The path to the file to be restored.
+ * @returns A promise that resolves to a boolean value indicating whether the
+ * file was successfully restored.
+ */
+async function restoreCache(key, version, filePath) {
+    const cache = await getCache(key, version);
+    if (cache === null)
+        return false;
+    await downloadFile(cache.archiveLocation, filePath);
+    return true;
+}
+
 try {
     const key = getInput("key");
     const version = getInput("version");
     const filePath = getInput("file");
-    logInfo("Getting cache...");
-    const cache = await getCache(key, version);
-    if (cache !== null) {
-        logInfo("Cache exists, restoring...");
-        await downloadFile(cache.archiveLocation, filePath);
-        logInfo("Cache restored");
+    logInfo("Restoring cache...");
+    if (await restoreCache(key, version, filePath)) {
+        logInfo("Cache successfully restored");
         process.exit(0);
     }
     logInfo("Cache does not exist, saving...");

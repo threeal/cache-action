@@ -10,7 +10,7 @@ const stream = { pipeline: jest.fn() };
 jest.unstable_mockModule("node:stream/promises", () => ({ default: stream }));
 
 const sendRequest = jest.fn();
-jest.unstable_mockModule("./api/https.js", () => ({ sendRequest }));
+jest.unstable_mockModule("./https.js", () => ({ sendRequest }));
 
 describe("download files", () => {
   it("it should download a file", async () => {

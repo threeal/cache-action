@@ -1,27 +1,16 @@
 import { getInput, logError, logInfo } from "gha-utils";
 import fs from "node:fs";
-
-import {
-  commitCache,
-  getCache,
-  reserveCache,
-  uploadCache,
-} from "./api/cache.js";
-
-import { downloadFile } from "./download.js";
+import { commitCache, reserveCache, uploadCache } from "./api/cache.js";
+import { restoreCache } from "./cache.js";
 
 try {
   const key = getInput("key");
   const version = getInput("version");
   const filePath = getInput("file");
 
-  logInfo("Getting cache...");
-  const cache = await getCache(key, version);
-  if (cache !== null) {
-    logInfo("Cache exists, restoring...");
-    await downloadFile(cache.archiveLocation, filePath);
-    logInfo("Cache restored");
-
+  logInfo("Restoring cache...");
+  if (await restoreCache(key, version, filePath)) {
+    logInfo("Cache successfully restored");
     process.exit(0);
   }
   logInfo("Cache does not exist, saving...");

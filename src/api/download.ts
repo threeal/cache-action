@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import https from "node:https";
 import stream from "node:stream/promises";
-import { sendRequest } from "./api/https.js";
+import { sendRequest } from "./https.js";
 
 /**
  * Downloads a file from the specified URL and saves it to the provided path.

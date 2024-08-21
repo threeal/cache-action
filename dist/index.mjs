@@ -217,7 +217,7 @@ async function downloadFile(url, savePath) {
  *
  * @param key - The cache key.
  * @param version - The cache version.
- * @param filePath - The path to the file to be restored.
+ * @param filePath - The path of the file to be restored.
  * @returns A promise that resolves to a boolean value indicating whether the
  * file was successfully restored.
  */

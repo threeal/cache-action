@@ -45,7 +45,7 @@ describe("retrieve caches", () => {
     expect(cache).toBe("some cache");
   });
 
-  it("should retrieve a non-existing cache", async () => {
+  it("should not retrieve a non-existing cache", async () => {
     const { getCache } = await import("./cache.js");
 
     sendRequest.mockImplementation(async (req, data) => {
@@ -111,6 +111,28 @@ describe("reserve caches", () => {
 
     const cacheId = await reserveCache("some-key", "some-version", 1024);
     expect(cacheId).toBe(32);
+  });
+
+  it("should not reserve a reserved cache", async () => {
+    const { reserveCache } = await import("./cache.js");
+
+    sendJsonRequest.mockImplementation(async (req, data) => {
+      expect(req).toBe("some request");
+      expect(data).toEqual({
+        key: "some-key",
+        version: "some-version",
+        cacheSize: 1024,
+      });
+      return { statusCode: 409 };
+    });
+
+    handleResponse.mockImplementation(async (res) => {
+      expect(res).toEqual({ statusCode: 409 });
+      return "";
+    });
+
+    const cacheId = await reserveCache("some-key", "some-version", 1024);
+    expect(cacheId).toBeNull();
   });
 
   it("should fail to reserve a cache", async () => {

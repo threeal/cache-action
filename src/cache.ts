@@ -44,14 +44,15 @@ export async function saveCache(
 ): Promise<void> {
   const fileSize = fs.statSync(filePath).size;
   const cacheId = await reserveCache(key, version, fileSize);
+  if (cacheId !== null) {
+    const file = fs.createReadStream(filePath, {
+      fd: fs.openSync(filePath, "r"),
+      autoClose: false,
+      start: 0,
+      end: fileSize,
+    });
+    await uploadCache(cacheId, file, fileSize);
 
-  const file = fs.createReadStream(filePath, {
-    fd: fs.openSync(filePath, "r"),
-    autoClose: false,
-    start: 0,
-    end: fileSize,
-  });
-  await uploadCache(cacheId, file, fileSize);
-
-  await commitCache(cacheId, fileSize);
+    await commitCache(cacheId, fileSize);
+  }
 }

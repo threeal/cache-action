@@ -164,16 +164,24 @@ async function getCache(key, version) {
  * @param key - The key of the cache to reserve.
  * @param version - The version of the cache to reserve.
  * @param size - The size of the cache to reserve, in bytes.
- * @returns A promise that resolves with the reserved cache ID.
+ * @returns A promise that resolves to the reserved cache ID, or null if the
+ * cache is already reserved.
  */
 async function reserveCache(key, version, size) {
     const req = createRequest("caches", { method: "POST" });
     const res = await sendJsonRequest(req, { key, version, cacheSize: size });
-    if (res.statusCode !== 201) {
-        throw await handleErrorResponse(res);
+    switch (res.statusCode) {
+        case 201: {
+            const { cacheId } = await handleJsonResponse(res);
+            return cacheId;
+        }
+        // Cache already reserved, return null.
+        case 409:
+            await handleResponse(res);
+            return null;
+        default:
+            throw await handleErrorResponse(res);
     }
-    const { cacheId } = await handleJsonResponse(res);
-    return cacheId;
 }
 /**
  * Uploads a file to a cache with the specified ID.
@@ -248,14 +256,16 @@ async function restoreCache(key, version, filePath) {
 async function saveCache(key, version, filePath) {
     const fileSize = fs.statSync(filePath).size;
     const cacheId = await reserveCache(key, version, fileSize);
-    const file = fs.createReadStream(filePath, {
-        fd: fs.openSync(filePath, "r"),
-        autoClose: false,
-        start: 0,
-        end: fileSize,
-    });
-    await uploadCache(cacheId, file, fileSize);
-    await commitCache(cacheId, fileSize);
+    if (cacheId !== null) {
+        const file = fs.createReadStream(filePath, {
+            fd: fs.openSync(filePath, "r"),
+            autoClose: false,
+            start: 0,
+            end: fileSize,
+        });
+        await uploadCache(cacheId, file, fileSize);
+        await commitCache(cacheId, fileSize);
+    }
 }
 
 try {

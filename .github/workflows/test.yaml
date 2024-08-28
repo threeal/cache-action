@@ -47,22 +47,32 @@ jobs:
         run: echo "some value" >> file.txt
 
       - name: Save Cache
+        id: save-cache
         uses: ./cache-action
         with:
           key: some-key-${{ matrix.os }}
           version: ${{ github.run_id }}
           file: file.txt
+
+      - name: Check Output
+        shell: bash
+        run: test "${{ steps.save-cache.outputs.restored }}" == "false"
 
       - name: Remove File
         shell: bash
         run: rm file.txt
 
       - name: Restore Cache
+        id: restore-cache
         uses: ./cache-action
         with:
           key: some-key-${{ matrix.os }}
           version: ${{ github.run_id }}
           file: file.txt
+
+      - name: Check Output
+        shell: bash
+        run: test "${{ steps.restore-cache.outputs.restored }}" == "true"
 
       - name: Check File
         shell: bash

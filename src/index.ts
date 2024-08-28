@@ -1,4 +1,4 @@
-import { getInput, logError, logInfo } from "gha-utils";
+import { getInput, logError, logInfo, setOutput } from "gha-utils";
 import { restoreCache, saveCache } from "./cache.js";
 
 try {
@@ -9,7 +9,10 @@ try {
   logInfo("Restoring cache...");
   if (await restoreCache(key, version, filePath)) {
     logInfo("Cache successfully restored");
+    setOutput("restored", "true");
     process.exit(0);
+  } else {
+    setOutput("restored", "false");
   }
 
   logInfo("Cache does not exist, saving...");

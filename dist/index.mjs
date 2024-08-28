@@ -15,6 +15,15 @@ function getInput(name) {
     return value.trim();
 }
 /**
+ * Sets the value of a GitHub Actions output.
+ *
+ * @param name - The name of the GitHub Actions output.
+ * @param value - The value of the GitHub Actions output
+ */
+function setOutput(name, value) {
+    fs.appendFileSync(process.env["GITHUB_OUTPUT"], `${name}=${value}${os.EOL}`);
+}
+/**
  * Logs an information message in GitHub Actions.
  *
  * @param message - The information message to log.
@@ -256,7 +265,11 @@ try {
     logInfo("Restoring cache...");
     if (await restoreCache(key, version, filePath)) {
         logInfo("Cache successfully restored");
+        setOutput("restored", "true");
         process.exit(0);
+    }
+    else {
+        setOutput("restored", "false");
     }
     logInfo("Cache does not exist, saving...");
     await saveCache(key, version, filePath);

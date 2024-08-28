@@ -14,6 +14,9 @@ inputs:
   file:
     description: The file to be cached
     required: true
+outputs:
+  restored:
+    description: A boolean value indicating whether the cache was successfully restored
 runs:
   using: node20
   main: dist/index.mjs

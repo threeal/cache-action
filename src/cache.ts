@@ -16,7 +16,7 @@ import { downloadFile } from "./api/download.js";
  * @param version - The cache version.
  * @param filePath - The path of the file to be restored.
  * @returns A promise that resolves to a boolean value indicating whether the
- * file was successfully restored.
+ * file was restored successfully.
  */
 export async function restoreCache(
   key: string,
@@ -35,24 +35,24 @@ export async function restoreCache(
  * @param key - The cache key.
  * @param version - The cache version.
  * @param filePath - The path of the file to be saved.
- * @returns A promise that resolves when the file has been successfully saved.
+ * @returns A promise that resolves to a boolean value indicating whether the
+ * file was saved successfully.
  */
 export async function saveCache(
   key: string,
   version: string,
   filePath: string,
-): Promise<void> {
+): Promise<boolean> {
   const fileSize = fs.statSync(filePath).size;
   const cacheId = await reserveCache(key, version, fileSize);
-  if (cacheId !== null) {
-    const file = fs.createReadStream(filePath, {
-      fd: fs.openSync(filePath, "r"),
-      autoClose: false,
-      start: 0,
-      end: fileSize,
-    });
-    await uploadCache(cacheId, file, fileSize);
-
-    await commitCache(cacheId, fileSize);
-  }
+  if (cacheId === null) return false;
+  const file = fs.createReadStream(filePath, {
+    fd: fs.openSync(filePath, "r"),
+    autoClose: false,
+    start: 0,
+    end: fileSize,
+  });
+  await uploadCache(cacheId, file, fileSize);
+  await commitCache(cacheId, fileSize);
+  return true;
 }

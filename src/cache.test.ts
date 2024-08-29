@@ -44,7 +44,7 @@ describe("restore files from caches", () => {
     expect(restored).toBe(true);
   });
 
-  it("it should not restore a cache", async () => {
+  it("it should not restore a file from a cache", async () => {
     const { restoreCache } = await import("./cache.js");
 
     getCache.mockImplementation(async (key, version) => {
@@ -110,6 +110,26 @@ describe("save files to caches", () => {
       expect(size).toBe(1024);
     });
 
-    await saveCache("some key", "some version", "some file path");
+    const saved = await saveCache("some key", "some version", "some file path");
+    expect(saved).toBe(true);
+  });
+
+  it("it should not save a file to a cache", async () => {
+    const { saveCache } = await import("./cache.js");
+
+    fs.statSync.mockImplementation((path) => {
+      expect(path).toBe("some file path");
+      return { size: 1024 };
+    });
+
+    reserveCache.mockImplementation(async (key, version, size) => {
+      expect(key).toBe("some key");
+      expect(version).toBe("some version");
+      expect(size).toBe(1024);
+      return null;
+    });
+
+    const saved = await saveCache("some key", "some version", "some file path");
+    expect(saved).toBe(false);
   });
 });

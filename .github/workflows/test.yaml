@@ -25,8 +25,8 @@ jobs:
       - name: Test Package
         run: yarn test
 
-  test-action:
-    name: Test Action
+  test-action-save-file:
+    name: Test Action to Save File
     runs-on: ${{ matrix.os }}-latest
     strategy:
       fail-fast: false
@@ -58,9 +58,23 @@ jobs:
         shell: bash
         run: test "${{ steps.save-cache.outputs.restored }}" == "false"
 
-      - name: Remove File
-        shell: bash
-        run: rm file.txt
+  test-action-restore-file:
+    name: Test Action to Restore File
+    needs: test-action-save-file
+    runs-on: ${{ matrix.os }}-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows, ubuntu, macos]
+    steps:
+      - name: Checkout Action
+        uses: actions/checkout@v4.1.7
+        with:
+          path: cache-action
+          sparse-checkout: |
+            action.yml
+            dist
+          sparse-checkout-cone-mode: false
 
       - name: Restore Cache
         id: restore-cache

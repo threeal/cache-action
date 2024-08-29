@@ -65,38 +65,7 @@ async function sendRequest(req, data) {
     return new Promise((resolve, reject) => {
         req.on("response", (res) => resolve(res));
         req.on("error", (err) => reject(err));
-        if (data !== undefined)
-            req.write(data);
         req.end();
-    });
-}
-/**
- * Sends an HTTPS request containing JSON data.
- *
- * @param req - The HTTPS request object.
- * @param data - The JSON data to be sent in the request body.
- * @returns A promise that resolves to an HTTPS response object.
- */
-async function sendJsonRequest(req, data) {
-    req.setHeader("Content-Type", "application/json");
-    return sendRequest(req, JSON.stringify(data));
-}
-/**
- * Sends an HTTPS request containing a binary stream.
- *
- * @param req - The HTTPS request object.
- * @param bin - The binary stream to be sent in the request body.
- * @param start - The starting byte of the binary stream.
- * @param end - The ending byte of the binary stream.
- * @returns A promise that resolves to an HTTPS response object.
- */
-async function sendStreamRequest(req, bin, start, end) {
-    return new Promise((resolve, reject) => {
-        req.setHeader("Content-Type", "application/octet-stream");
-        req.setHeader("Content-Range", `bytes ${start}-${end}/*`);
-        req.on("response", (res) => resolve(res));
-        req.on("error", (err) => reject(err));
-        bin.pipe(req);
     });
 }
 /**
@@ -158,62 +127,6 @@ async function getCache(key, version) {
             throw await handleErrorResponse(res);
     }
 }
-/**
- * Reserves a cache with the specified key, version, and size.
- *
- * @param key - The key of the cache to reserve.
- * @param version - The version of the cache to reserve.
- * @param size - The size of the cache to reserve, in bytes.
- * @returns A promise that resolves to the reserved cache ID, or null if the
- * cache is already reserved.
- */
-async function reserveCache(key, version, size) {
-    const req = createRequest("caches", { method: "POST" });
-    const res = await sendJsonRequest(req, { key, version, cacheSize: size });
-    switch (res.statusCode) {
-        case 201: {
-            const { cacheId } = await handleJsonResponse(res);
-            return cacheId;
-        }
-        // Cache already reserved, return null.
-        case 409:
-            await handleResponse(res);
-            return null;
-        default:
-            throw await handleErrorResponse(res);
-    }
-}
-/**
- * Uploads a file to a cache with the specified ID.
- *
- * @param id - The cache ID.
- * @param file - The readable stream of the file to upload.
- * @param fileSize - The size of the file to upload, in bytes.
- * @returns A promise that resolves with nothing.
- */
-async function uploadCache(id, file, fileSize) {
-    const req = createRequest(`caches/${id}`, { method: "PATCH" });
-    const res = await sendStreamRequest(req, file, 0, fileSize);
-    if (res.statusCode !== 204) {
-        throw await handleErrorResponse(res);
-    }
-    await handleResponse(res);
-}
-/**
- * Commits a cache with the specified ID.
- *
- * @param id - The cache ID.
- * @param size - The size of the cache in bytes.
- * @returns A promise that resolves with nothing.
- */
-async function commitCache(id, size) {
-    const req = createRequest(`caches/${id}`, { method: "POST" });
-    const res = await sendJsonRequest(req, { size });
-    if (res.statusCode !== 204) {
-        throw await handleErrorResponse(res);
-    }
-    await handleResponse(res);
-}
 
 /**
  * Downloads a file from the specified URL and saves it to the provided path.
@@ -245,30 +158,6 @@ async function restoreCache(key, version, filePath) {
     await downloadFile(cache.archiveLocation, filePath);
     return true;
 }
-/**
- * Saves a file to the cache using the specified key and version.
- *
- * @param key - The cache key.
- * @param version - The cache version.
- * @param filePath - The path of the file to be saved.
- * @returns A promise that resolves to a boolean value indicating whether the
- * file was saved successfully.
- */
-async function saveCache(key, version, filePath) {
-    const fileSize = fs.statSync(filePath).size;
-    const cacheId = await reserveCache(key, version, fileSize);
-    if (cacheId === null)
-        return false;
-    const file = fs.createReadStream(filePath, {
-        fd: fs.openSync(filePath, "r"),
-        autoClose: false,
-        start: 0,
-        end: fileSize,
-    });
-    await uploadCache(cacheId, file, fileSize);
-    await commitCache(cacheId, fileSize);
-    return true;
-}
 
 try {
     const key = getInput("key");
@@ -278,17 +167,10 @@ try {
     if (await restoreCache(key, version, filePath)) {
         logInfo("Cache successfully restored");
         setOutput("restored", "true");
-        process.exit(0);
     }
     else {
+        logInfo("Cache does not exist");
         setOutput("restored", "false");
-    }
-    logInfo("Cache does not exist, saving...");
-    if (await saveCache(key, version, filePath)) {
-        logInfo("Cache successfully saved");
-    }
-    else {
-        logInfo("Cache exists");
     }
 }
 catch (err) {

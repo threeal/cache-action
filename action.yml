@@ -19,4 +19,4 @@ outputs:
     description: A boolean value indicating whether the cache was successfully restored
 runs:
   using: node20
-  main: dist/index.mjs
+  main: dist/main.mjs

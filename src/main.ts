@@ -1,5 +1,5 @@
 import { getInput, logError, logInfo, setOutput } from "gha-utils";
-import { restoreCache, saveCache } from "./cache.js";
+import { restoreCache } from "./cache.js";
 
 try {
   const key = getInput("key");
@@ -10,16 +10,9 @@ try {
   if (await restoreCache(key, version, filePath)) {
     logInfo("Cache successfully restored");
     setOutput("restored", "true");
-    process.exit(0);
   } else {
+    logInfo("Cache does not exist");
     setOutput("restored", "false");
-  }
-
-  logInfo("Cache does not exist, saving...");
-  if (await saveCache(key, version, filePath)) {
-    logInfo("Cache successfully saved");
-  } else {
-    logInfo("Cache exists");
   }
 } catch (err) {
   logError(err);

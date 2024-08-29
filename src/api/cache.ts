@@ -54,20 +54,31 @@ export async function getCache(
  * @param key - The key of the cache to reserve.
  * @param version - The version of the cache to reserve.
  * @param size - The size of the cache to reserve, in bytes.
- * @returns A promise that resolves with the reserved cache ID.
+ * @returns A promise that resolves to the reserved cache ID, or null if the
+ * cache is already reserved.
  */
 export async function reserveCache(
   key: string,
   version: string,
   size: number,
-): Promise<number> {
+): Promise<number | null> {
   const req = createRequest("caches", { method: "POST" });
   const res = await sendJsonRequest(req, { key, version, cacheSize: size });
-  if (res.statusCode !== 201) {
-    throw await handleErrorResponse(res);
+
+  switch (res.statusCode) {
+    case 201: {
+      const { cacheId } = await handleJsonResponse<{ cacheId: number }>(res);
+      return cacheId;
+    }
+
+    // Cache already reserved, return null.
+    case 409:
+      await handleResponse(res);
+      return null;
+
+    default:
+      throw await handleErrorResponse(res);
   }
-  const { cacheId } = await handleJsonResponse<{ cacheId: number }>(res);
-  return cacheId;
 }
 
 /**

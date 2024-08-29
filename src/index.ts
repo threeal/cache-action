@@ -16,8 +16,11 @@ try {
   }
 
   logInfo("Cache does not exist, saving...");
-  await saveCache(key, version, filePath);
-  logInfo("Cache successfully saved");
+  if (await saveCache(key, version, filePath)) {
+    logInfo("Cache successfully saved");
+  } else {
+    logInfo("Cache exists");
+  }
 } catch (err) {
   logError(err);
   process.exit(1);

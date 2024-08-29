@@ -132,7 +132,7 @@ async function handleJsonResponse(res) {
  */
 async function handleErrorResponse(res) {
     const { message } = await handleJsonResponse(res);
-    return new Error(message);
+    return new Error(`${message} (${res.statusCode})`);
 }
 
 /**

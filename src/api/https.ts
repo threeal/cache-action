@@ -130,5 +130,5 @@ export async function handleErrorResponse(
   res: http.IncomingMessage,
 ): Promise<Error> {
   const { message } = await handleJsonResponse<{ message: string }>(res);
-  return new Error(message);
+  return new Error(`${message} (${res.statusCode})`);
 }

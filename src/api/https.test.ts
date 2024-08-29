@@ -75,7 +75,14 @@ class MockedReadable {
 }
 
 class MockedResponse extends MockedReadable {
+  statusCode: number | undefined;
+
   #onError?: (err: Error) => void;
+
+  constructor(statusCode?: number) {
+    super();
+    this.statusCode = statusCode;
+  }
 
   on(event: string, callback: any): void {
     switch (event) {
@@ -239,12 +246,12 @@ describe("handle HTTPS responses containing error data", () => {
   it("should handle an HTTPS response", async () => {
     const { handleErrorResponse } = await import("./https.js");
 
-    const res = new MockedResponse();
+    const res = new MockedResponse(500);
     const prom = handleErrorResponse(res as any);
 
     res.write(JSON.stringify({ message: "some error" }));
     res.end();
 
-    await expect(prom).resolves.toEqual(new Error("some error"));
+    await expect(prom).resolves.toEqual(new Error("some error (500)"));
   });
 });

@@ -1,4 +1,4 @@
-import fs from "node:fs/promises";
+import fsPromises from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { compressFiles, extractFiles } from "./archive.js";
@@ -6,18 +6,24 @@ import { compressFiles, extractFiles } from "./archive.js";
 describe("compress and extract files", () => {
   let tempDir = "";
   beforeAll(async () => {
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "temp-"));
+    tempDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "temp-"));
   });
 
   let archivePath = "";
   it("should compress files to an arhive", async () => {
-    await fs.access(tempDir);
+    await fsPromises.access(tempDir);
     await Promise.all([
-      fs.writeFile(path.join(tempDir, "a-file"), "a content"),
-      fs.writeFile(path.join(tempDir, "another-file"), "another content"),
+      fsPromises.writeFile(path.join(tempDir, "a-file"), "a content"),
+      fsPromises.writeFile(
+        path.join(tempDir, "another-file"),
+        "another content",
+      ),
       (async () => {
-        await fs.mkdir(path.join(tempDir, "a-dir"));
-        await fs.writeFile(path.join(tempDir, "a-dir", "a-file"), "a content");
+        await fsPromises.mkdir(path.join(tempDir, "a-dir"));
+        await fsPromises.writeFile(
+          path.join(tempDir, "a-dir", "a-file"),
+          "a content",
+        );
       })(),
     ]);
 
@@ -28,28 +34,32 @@ describe("compress and extract files", () => {
       path.join(tempDir, "a-dir", "a-file"),
     ]);
 
-    await fs.access(archivePath);
+    await fsPromises.access(archivePath);
   });
 
   it("should extract files from an archive", async () => {
-    await fs.access(archivePath);
+    await fsPromises.access(archivePath);
     await Promise.all([
-      fs.rm(path.join(tempDir, "a-file")),
-      fs.rm(path.join(tempDir, "a-file")),
-      fs.rm(path.join(tempDir, "a-dir"), { recursive: true }),
+      fsPromises.rm(path.join(tempDir, "a-file")),
+      fsPromises.rm(path.join(tempDir, "a-file")),
+      fsPromises.rm(path.join(tempDir, "a-dir"), { recursive: true }),
     ]);
 
     await extractFiles(archivePath);
 
     await Promise.all([
       expect(
-        fs.readFile(path.join(tempDir, "a-file"), { encoding: "utf-8" }),
+        fsPromises.readFile(path.join(tempDir, "a-file"), {
+          encoding: "utf-8",
+        }),
       ).resolves.toBe("a content"),
       expect(
-        fs.readFile(path.join(tempDir, "another-file"), { encoding: "utf-8" }),
+        fsPromises.readFile(path.join(tempDir, "another-file"), {
+          encoding: "utf-8",
+        }),
       ).resolves.toBe("another content"),
       expect(
-        fs.readFile(path.join(tempDir, "a-dir", "a-file"), {
+        fsPromises.readFile(path.join(tempDir, "a-dir", "a-file"), {
           encoding: "utf-8",
         }),
       ).resolves.toBe("a content"),
@@ -57,6 +67,6 @@ describe("compress and extract files", () => {
   });
 
   afterAll(async () => {
-    await fs.rm(tempDir, { recursive: true });
+    await fsPromises.rm(tempDir, { recursive: true });
   });
 });

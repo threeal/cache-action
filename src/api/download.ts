@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import https from "node:https";
-import stream from "node:stream/promises";
+import streamPromises from "node:stream/promises";
 import { sendRequest } from "./https.js";
 
 /**
@@ -18,5 +18,5 @@ export async function downloadFile(
   const res = await sendRequest(req);
 
   const file = fs.createWriteStream(savePath);
-  await stream.pipeline(res, file);
+  await streamPromises.pipeline(res, file);
 }

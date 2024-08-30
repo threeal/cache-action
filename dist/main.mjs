@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import 'node:path';
 import https from 'node:https';
-import stream from 'node:stream/promises';
+import streamPromises from 'node:stream/promises';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
@@ -141,7 +141,7 @@ async function downloadFile(url, savePath) {
     const req = https.request(url);
     const res = await sendRequest(req);
     const file = fs.createWriteStream(savePath);
-    await stream.pipeline(res, file);
+    await streamPromises.pipeline(res, file);
 }
 
 const execFilePromise = promisify(execFile);

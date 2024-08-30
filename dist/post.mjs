@@ -3,6 +3,8 @@ import os from 'node:os';
 import 'node:path';
 import https from 'node:https';
 import 'node:stream/promises';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 
 /**
  * Retrieves the value of a GitHub Actions input.
@@ -183,22 +185,35 @@ async function commitCache(id, size) {
     await handleResponse(res);
 }
 
+const execFilePromise = promisify(execFile);
 /**
- * Saves a file to the cache using the specified key and version.
+ * Compresses files into an archive using Tar.
+ *
+ * @param archivePath - The output path for the archive.
+ * @param filePaths - The paths of the files to be compressed.
+ * @returns A promise that resolves when the files have been successfully compressed.
+ */
+async function compressFiles(archivePath, filePaths) {
+    await execFilePromise("tar", ["-cf", archivePath, "-P", ...filePaths]);
+}
+
+/**
+ * Saves files to the cache using the specified key and version.
  *
  * @param key - The cache key.
  * @param version - The cache version.
- * @param filePath - The path of the file to be saved.
+ * @param filePath - The paths of the files to be saved.
  * @returns A promise that resolves to a boolean value indicating whether the
  * file was saved successfully.
  */
-async function saveCache(key, version, filePath) {
-    const fileSize = fs.statSync(filePath).size;
+async function saveCache(key, version, filePaths) {
+    await compressFiles("cache.tar", filePaths);
+    const fileSize = fs.statSync("cache.tar").size;
     const cacheId = await reserveCache(key, version, fileSize);
     if (cacheId === null)
         return false;
-    const file = fs.createReadStream(filePath, {
-        fd: fs.openSync(filePath, "r"),
+    const file = fs.createReadStream("cache.tar", {
+        fd: fs.openSync("cache.tar", "r"),
         autoClose: false,
         start: 0,
         end: fileSize,
@@ -211,9 +226,11 @@ async function saveCache(key, version, filePath) {
 try {
     const key = getInput("key");
     const version = getInput("version");
-    const filePath = getInput("file");
+    const filePaths = getInput("files")
+        .split(/\s+/)
+        .filter((arg) => arg != "");
     logInfo("Saving cache...");
-    if (await saveCache(key, version, filePath)) {
+    if (await saveCache(key, version, filePaths)) {
         logInfo("Cache successfully saved");
     }
     else {

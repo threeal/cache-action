@@ -8,46 +8,47 @@ import {
 } from "./api/cache.js";
 
 import { downloadFile } from "./api/download.js";
+import { compressFiles, extractFiles } from "./archive.js";
 
 /**
- * Restores a file from the cache using the specified key and version.
+ * Restores files from the cache using the specified key and version.
  *
  * @param key - The cache key.
  * @param version - The cache version.
- * @param filePath - The path of the file to be restored.
  * @returns A promise that resolves to a boolean value indicating whether the
  * file was restored successfully.
  */
 export async function restoreCache(
   key: string,
   version: string,
-  filePath: string,
 ): Promise<boolean> {
   const cache = await getCache(key, version);
   if (cache === null) return false;
-  await downloadFile(cache.archiveLocation, filePath);
+  await downloadFile(cache.archiveLocation, "cache.tar");
+  await extractFiles("cache.tar");
   return true;
 }
 
 /**
- * Saves a file to the cache using the specified key and version.
+ * Saves files to the cache using the specified key and version.
  *
  * @param key - The cache key.
  * @param version - The cache version.
- * @param filePath - The path of the file to be saved.
+ * @param filePath - The paths of the files to be saved.
  * @returns A promise that resolves to a boolean value indicating whether the
  * file was saved successfully.
  */
 export async function saveCache(
   key: string,
   version: string,
-  filePath: string,
+  filePaths: string[],
 ): Promise<boolean> {
-  const fileSize = fs.statSync(filePath).size;
+  await compressFiles("cache.tar", filePaths);
+  const fileSize = fs.statSync("cache.tar").size;
   const cacheId = await reserveCache(key, version, fileSize);
   if (cacheId === null) return false;
-  const file = fs.createReadStream(filePath, {
-    fd: fs.openSync(filePath, "r"),
+  const file = fs.createReadStream("cache.tar", {
+    fd: fs.openSync("cache.tar", "r"),
     autoClose: false,
     start: 0,
     end: fileSize,

@@ -4,10 +4,12 @@ import { saveCache } from "./cache.js";
 try {
   const key = getInput("key");
   const version = getInput("version");
-  const filePath = getInput("file");
+  const filePaths = getInput("files")
+    .split(/\s+/)
+    .filter((arg) => arg != "");
 
   logInfo("Saving cache...");
-  if (await saveCache(key, version, filePath)) {
+  if (await saveCache(key, version, filePaths)) {
     logInfo("Cache successfully saved");
   } else {
     logInfo("Cache already exists");

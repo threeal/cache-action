@@ -212,12 +212,7 @@ async function saveCache(key, version, filePaths) {
     const cacheId = await reserveCache(key, version, fileSize);
     if (cacheId === null)
         return false;
-    const file = fs.createReadStream("cache.tar", {
-        fd: fs.openSync("cache.tar", "r"),
-        autoClose: false,
-        start: 0,
-        end: fileSize,
-    });
+    const file = fs.createReadStream("cache.tar", { start: 0, end: fileSize });
     await uploadCache(cacheId, file, fileSize);
     await commitCache(cacheId, fileSize);
     return true;

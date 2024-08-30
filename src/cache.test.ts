@@ -1,7 +1,6 @@
 import { jest } from "@jest/globals";
 
 const fs = {
-  openSync: jest.fn(),
   createReadStream: jest.fn(),
   statSync: jest.fn(),
 };
@@ -94,20 +93,9 @@ describe("save files to caches", () => {
       return 32;
     });
 
-    fs.openSync.mockImplementation((path, flags) => {
-      expect(path).toBe("cache.tar");
-      expect(flags).toBe("r");
-      return "some file";
-    });
-
     fs.createReadStream.mockImplementation((path, option) => {
       expect(path).toBe("cache.tar");
-      expect(option).toEqual({
-        fd: "some file",
-        autoClose: false,
-        start: 0,
-        end: 1024,
-      });
+      expect(option).toEqual({ start: 0, end: 1024 });
       return "some file stream";
     });
 

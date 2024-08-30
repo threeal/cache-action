@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import 'node:path';
+import 'node:fs/promises';
 import https from 'node:https';
 import streamPromises from 'node:stream/promises';
 import { execFile } from 'node:child_process';

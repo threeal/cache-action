@@ -11,7 +11,7 @@ import { downloadFile } from "./api/download.js";
 import { compressFiles, extractFiles } from "./archive.js";
 
 /**
- * Restores a file from the cache using the specified key and version.
+ * Restores files from the cache using the specified key and version.
  *
  * @param key - The cache key.
  * @param version - The cache version.
@@ -30,20 +30,20 @@ export async function restoreCache(
 }
 
 /**
- * Saves a file to the cache using the specified key and version.
+ * Saves files to the cache using the specified key and version.
  *
  * @param key - The cache key.
  * @param version - The cache version.
- * @param filePath - The path of the file to be saved.
+ * @param filePath - The paths of the files to be saved.
  * @returns A promise that resolves to a boolean value indicating whether the
  * file was saved successfully.
  */
 export async function saveCache(
   key: string,
   version: string,
-  filePath: string,
+  filePaths: string[],
 ): Promise<boolean> {
-  await compressFiles("cache.tar", [filePath]);
+  await compressFiles("cache.tar", filePaths);
   const fileSize = fs.statSync("cache.tar").size;
   const cacheId = await reserveCache(key, version, fileSize);
   if (cacheId === null) return false;

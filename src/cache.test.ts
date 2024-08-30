@@ -79,7 +79,7 @@ describe("save files to caches", () => {
 
     compressFiles.mockImplementation(async (archivePath, filePaths) => {
       expect(archivePath).toBe("cache.tar");
-      expect(filePaths).toEqual(["some file path"]);
+      expect(filePaths).toEqual(["some file path", "some other file path"]);
     });
 
     fs.statSync.mockImplementation((path) => {
@@ -122,7 +122,10 @@ describe("save files to caches", () => {
       expect(size).toBe(1024);
     });
 
-    const saved = await saveCache("some key", "some version", "some file path");
+    const saved = await saveCache("some key", "some version", [
+      "some file path",
+      "some other file path",
+    ]);
     expect(saved).toBe(true);
   });
 
@@ -131,7 +134,7 @@ describe("save files to caches", () => {
 
     compressFiles.mockImplementation(async (archivePath, filePaths) => {
       expect(archivePath).toBe("cache.tar");
-      expect(filePaths).toEqual(["some file path"]);
+      expect(filePaths).toEqual(["some file path", "some other file path"]);
     });
 
     fs.statSync.mockImplementation((path) => {
@@ -146,7 +149,10 @@ describe("save files to caches", () => {
       return null;
     });
 
-    const saved = await saveCache("some key", "some version", "some file path");
+    const saved = await saveCache("some key", "some version", [
+      "some file path",
+      "some other file path",
+    ]);
     expect(saved).toBe(false);
   });
 });

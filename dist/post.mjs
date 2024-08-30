@@ -198,16 +198,16 @@ async function compressFiles(archivePath, filePaths) {
 }
 
 /**
- * Saves a file to the cache using the specified key and version.
+ * Saves files to the cache using the specified key and version.
  *
  * @param key - The cache key.
  * @param version - The cache version.
- * @param filePath - The path of the file to be saved.
+ * @param filePath - The paths of the files to be saved.
  * @returns A promise that resolves to a boolean value indicating whether the
  * file was saved successfully.
  */
-async function saveCache(key, version, filePath) {
-    await compressFiles("cache.tar", [filePath]);
+async function saveCache(key, version, filePaths) {
+    await compressFiles("cache.tar", filePaths);
     const fileSize = fs.statSync("cache.tar").size;
     const cacheId = await reserveCache(key, version, fileSize);
     if (cacheId === null)
@@ -226,9 +226,11 @@ async function saveCache(key, version, filePath) {
 try {
     const key = getInput("key");
     const version = getInput("version");
-    const filePath = getInput("file");
+    const filePaths = getInput("files")
+        .split(/\s+/)
+        .filter((arg) => arg != "");
     logInfo("Saving cache...");
-    if (await saveCache(key, version, filePath)) {
+    if (await saveCache(key, version, filePaths)) {
         logInfo("Cache successfully saved");
     }
     else {

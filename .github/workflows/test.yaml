@@ -42,9 +42,13 @@ jobs:
             dist
           sparse-checkout-cone-mode: false
 
-      - name: Prepare File
+      - name: Prepare Files
         shell: bash
-        run: echo "some value" >> file.txt
+        run: |
+          echo "a content" >> a-file
+          echo "another content" >> another-file
+          mkdir a-dir
+          echo "a content" >> a-dir/a-file
 
       - name: Save Cache
         id: save-cache
@@ -52,7 +56,9 @@ jobs:
         with:
           key: some-key-${{ matrix.os }}
           version: ${{ github.run_id }}
-          file: file.txt
+          files: |
+            a-file another-file
+            a-dir/a-file
 
       - name: Check Output
         shell: bash
@@ -82,12 +88,17 @@ jobs:
         with:
           key: some-key-${{ matrix.os }}
           version: ${{ github.run_id }}
-          file: file.txt
+          files: |
+            a-file another-file
+            a-dir/a-file
 
       - name: Check Output
         shell: bash
         run: test "${{ steps.restore-cache.outputs.restored }}" == "true"
 
-      - name: Check File
+      - name: Check Files
         shell: bash
-        run: test "$(cat file.txt)" == "some value"
+        run: |
+          test "$(cat a-file)" == "a content"
+          test "$(cat another-file)" == "another content"
+          test "$(cat a-dir/a-file)" == "a content"

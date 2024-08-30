@@ -156,7 +156,7 @@ async function extractFiles(archivePath) {
 }
 
 /**
- * Restores a file from the cache using the specified key and version.
+ * Restores files from the cache using the specified key and version.
  *
  * @param key - The cache key.
  * @param version - The cache version.

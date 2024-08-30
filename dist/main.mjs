@@ -3,6 +3,8 @@ import os from 'node:os';
 import 'node:path';
 import https from 'node:https';
 import stream from 'node:stream/promises';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 
 /**
  * Retrieves the value of a GitHub Actions input.
@@ -142,29 +144,39 @@ async function downloadFile(url, savePath) {
     await stream.pipeline(res, file);
 }
 
+const execFilePromise = promisify(execFile);
+/**
+ * Extracts files from an archive using Tar.
+ *
+ * @param archivePath - The path to the archive.
+ * @returns A promise that resolves when the files have been successfully extracted.
+ */
+async function extractFiles(archivePath) {
+    await execFilePromise("tar", ["-xf", archivePath, "-P"]);
+}
+
 /**
  * Restores a file from the cache using the specified key and version.
  *
  * @param key - The cache key.
  * @param version - The cache version.
- * @param filePath - The path of the file to be restored.
  * @returns A promise that resolves to a boolean value indicating whether the
  * file was restored successfully.
  */
-async function restoreCache(key, version, filePath) {
+async function restoreCache(key, version) {
     const cache = await getCache(key, version);
     if (cache === null)
         return false;
-    await downloadFile(cache.archiveLocation, filePath);
+    await downloadFile(cache.archiveLocation, "cache.tar");
+    await extractFiles("cache.tar");
     return true;
 }
 
 try {
     const key = getInput("key");
     const version = getInput("version");
-    const filePath = getInput("file");
     logInfo("Restoring cache...");
-    if (await restoreCache(key, version, filePath)) {
+    if (await restoreCache(key, version)) {
         logInfo("Cache successfully restored");
         setOutput("restored", "true");
     }

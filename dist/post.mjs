@@ -3,6 +3,8 @@ import os from 'node:os';
 import 'node:path';
 import https from 'node:https';
 import 'node:stream/promises';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 
 /**
  * Retrieves the value of a GitHub Actions input.
@@ -183,6 +185,18 @@ async function commitCache(id, size) {
     await handleResponse(res);
 }
 
+const execFilePromise = promisify(execFile);
+/**
+ * Compresses files into an archive using Tar.
+ *
+ * @param archivePath - The output path for the archive.
+ * @param filePaths - The paths of the files to be compressed.
+ * @returns A promise that resolves when the files have been successfully compressed.
+ */
+async function compressFiles(archivePath, filePaths) {
+    await execFilePromise("tar", ["-cf", archivePath, "-P", ...filePaths]);
+}
+
 /**
  * Saves a file to the cache using the specified key and version.
  *
@@ -193,12 +207,13 @@ async function commitCache(id, size) {
  * file was saved successfully.
  */
 async function saveCache(key, version, filePath) {
-    const fileSize = fs.statSync(filePath).size;
+    await compressFiles("cache.tar", [filePath]);
+    const fileSize = fs.statSync("cache.tar").size;
     const cacheId = await reserveCache(key, version, fileSize);
     if (cacheId === null)
         return false;
-    const file = fs.createReadStream(filePath, {
-        fd: fs.openSync(filePath, "r"),
+    const file = fs.createReadStream("cache.tar", {
+        fd: fs.openSync("cache.tar", "r"),
         autoClose: false,
         start: 0,
         end: fileSize,

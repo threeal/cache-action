@@ -21,6 +21,13 @@ jest.unstable_mockModule("./api/cache.js", () => ({
 const downloadFile = jest.fn();
 jest.unstable_mockModule("./api/download.js", () => ({ downloadFile }));
 
+const compressFiles = jest.fn();
+const extractFiles = jest.fn();
+jest.unstable_mockModule("./archive.js", () => ({
+  compressFiles,
+  extractFiles,
+}));
+
 describe("restore files from caches", () => {
   it("it should restore a file from a cache", async () => {
     const { restoreCache } = await import("./cache.js");
@@ -33,14 +40,14 @@ describe("restore files from caches", () => {
 
     downloadFile.mockImplementation(async (url, savePath) => {
       expect(url).toBe("some URL");
-      expect(savePath).toBe("some file path");
+      expect(savePath).toBe("cache.tar");
     });
 
-    const restored = await restoreCache(
-      "some key",
-      "some version",
-      "some file path",
-    );
+    extractFiles.mockImplementation(async (archivePath) => {
+      expect(archivePath).toBe("cache.tar");
+    });
+
+    const restored = await restoreCache("some key", "some version");
     expect(restored).toBe(true);
   });
 
@@ -57,11 +64,11 @@ describe("restore files from caches", () => {
       throw new Error("some error");
     });
 
-    const restored = await restoreCache(
-      "some key",
-      "some version",
-      "some file path",
-    );
+    extractFiles.mockImplementation(async () => {
+      throw new Error("some error");
+    });
+
+    const restored = await restoreCache("some key", "some version");
     expect(restored).toBe(false);
   });
 });
@@ -70,8 +77,13 @@ describe("save files to caches", () => {
   it("it should save a file to a cache", async () => {
     const { saveCache } = await import("./cache.js");
 
+    compressFiles.mockImplementation(async (archivePath, filePaths) => {
+      expect(archivePath).toBe("cache.tar");
+      expect(filePaths).toEqual(["some file path"]);
+    });
+
     fs.statSync.mockImplementation((path) => {
-      expect(path).toBe("some file path");
+      expect(path).toBe("cache.tar");
       return { size: 1024 };
     });
 
@@ -83,13 +95,13 @@ describe("save files to caches", () => {
     });
 
     fs.openSync.mockImplementation((path, flags) => {
-      expect(path).toBe("some file path");
+      expect(path).toBe("cache.tar");
       expect(flags).toBe("r");
       return "some file";
     });
 
     fs.createReadStream.mockImplementation((path, option) => {
-      expect(path).toBe("some file path");
+      expect(path).toBe("cache.tar");
       expect(option).toEqual({
         fd: "some file",
         autoClose: false,
@@ -117,8 +129,13 @@ describe("save files to caches", () => {
   it("it should not save a file to a cache", async () => {
     const { saveCache } = await import("./cache.js");
 
+    compressFiles.mockImplementation(async (archivePath, filePaths) => {
+      expect(archivePath).toBe("cache.tar");
+      expect(filePaths).toEqual(["some file path"]);
+    });
+
     fs.statSync.mockImplementation((path) => {
-      expect(path).toBe("some file path");
+      expect(path).toBe("cache.tar");
       return { size: 1024 };
     });
 

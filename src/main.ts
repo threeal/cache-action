@@ -4,10 +4,9 @@ import { restoreCache } from "./cache.js";
 try {
   const key = getInput("key");
   const version = getInput("version");
-  const filePath = getInput("file");
 
   logInfo("Restoring cache...");
-  if (await restoreCache(key, version, filePath)) {
+  if (await restoreCache(key, version)) {
     logInfo("Cache successfully restored");
     setOutput("restored", "true");
   } else {

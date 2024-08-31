@@ -1,43 +1,48 @@
 import { jest } from "@jest/globals";
 
-const fs = { createWriteStream: jest.fn() };
-jest.unstable_mockModule("node:fs", () => ({ default: fs }));
+let clouds: Partial<Record<string, string>> = {};
+let files: Partial<Record<string, string>> = {};
 
-const https = { request: jest.fn() };
-jest.unstable_mockModule("node:https", () => ({ default: https }));
-
-const streamPromises = { pipeline: jest.fn() };
-jest.unstable_mockModule("node:stream/promises", () => ({
-  default: streamPromises,
+jest.unstable_mockModule("node:fs", () => ({
+  default: {
+    createWriteStream: (path: string) => {
+      return (content: string) => (files[path] = content);
+    },
+  },
 }));
 
-const sendRequest = jest.fn();
-jest.unstable_mockModule("./https.js", () => ({ sendRequest }));
+jest.unstable_mockModule("node:https", () => ({
+  default: {
+    request: (url: string) => () => url,
+  },
+}));
+
+jest.unstable_mockModule("node:stream/promises", () => ({
+  default: {
+    pipeline: async (
+      source: () => string,
+      destination: (content: string) => void,
+    ) => destination(source()),
+  },
+}));
+
+jest.unstable_mockModule("./https.js", () => ({
+  sendRequest: async (req: () => string) => () => clouds[req()],
+}));
 
 describe("download files", () => {
+  beforeEach(() => {
+    clouds = {};
+    files = {};
+  });
+
   it("it should download a file", async () => {
     const { downloadFile } = await import("./download.js");
 
-    https.request.mockImplementation((url: any) => {
-      expect(url).toBe("some URL");
-      return "some request";
-    });
+    clouds["a-url"] = "a content";
 
-    sendRequest.mockImplementation(async (req: any) => {
-      expect(req).toBe("some request");
-      return "some response";
-    });
+    await downloadFile("a-url", "a-file");
 
-    fs.createWriteStream.mockImplementation((path) => {
-      expect(path).toBe("some file path");
-      return "some file stream";
-    });
-
-    streamPromises.pipeline.mockImplementation(async (source, destination) => {
-      expect(source).toBe("some response");
-      expect(destination).toBe("some file stream");
-    });
-
-    await downloadFile("some URL", "some file path");
+    expect(files).toEqual({ "a-file": "a content" });
   });
 });

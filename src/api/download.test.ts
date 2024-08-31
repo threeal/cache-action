@@ -6,8 +6,10 @@ jest.unstable_mockModule("node:fs", () => ({ default: fs }));
 const https = { request: jest.fn() };
 jest.unstable_mockModule("node:https", () => ({ default: https }));
 
-const stream = { pipeline: jest.fn() };
-jest.unstable_mockModule("node:stream/promises", () => ({ default: stream }));
+const streamPromises = { pipeline: jest.fn() };
+jest.unstable_mockModule("node:stream/promises", () => ({
+  default: streamPromises,
+}));
 
 const sendRequest = jest.fn();
 jest.unstable_mockModule("./https.js", () => ({ sendRequest }));
@@ -31,7 +33,7 @@ describe("download files", () => {
       return "some file stream";
     });
 
-    stream.pipeline.mockImplementation(async (source, destination) => {
+    streamPromises.pipeline.mockImplementation(async (source, destination) => {
       expect(source).toBe("some response");
       expect(destination).toBe("some file stream");
     });

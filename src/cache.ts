@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import fsPromises from "node:fs/promises";
 
 import {
   commitCache,
@@ -44,11 +45,14 @@ export async function saveCache(
   filePaths: string[],
 ): Promise<boolean> {
   await compressFiles("cache.tar", filePaths);
-  const fileSize = fs.statSync("cache.tar").size;
-  const cacheId = await reserveCache(key, version, fileSize);
+  const fileStat = await fsPromises.stat("cache.tar");
+  const cacheId = await reserveCache(key, version, fileStat.size);
   if (cacheId === null) return false;
-  const file = fs.createReadStream("cache.tar", { start: 0, end: fileSize });
-  await uploadCache(cacheId, file, fileSize);
-  await commitCache(cacheId, fileSize);
+  const file = fs.createReadStream("cache.tar", {
+    start: 0,
+    end: fileStat.size,
+  });
+  await uploadCache(cacheId, file, fileStat.size);
+  await commitCache(cacheId, fileStat.size);
   return true;
 }

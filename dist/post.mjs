@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import 'node:path';
+import fsPromises from 'node:fs/promises';
 import https from 'node:https';
 import 'node:stream/promises';
 import { execFile } from 'node:child_process';
@@ -208,13 +209,16 @@ async function compressFiles(archivePath, filePaths) {
  */
 async function saveCache(key, version, filePaths) {
     await compressFiles("cache.tar", filePaths);
-    const fileSize = fs.statSync("cache.tar").size;
-    const cacheId = await reserveCache(key, version, fileSize);
+    const fileStat = await fsPromises.stat("cache.tar");
+    const cacheId = await reserveCache(key, version, fileStat.size);
     if (cacheId === null)
         return false;
-    const file = fs.createReadStream("cache.tar", { start: 0, end: fileSize });
-    await uploadCache(cacheId, file, fileSize);
-    await commitCache(cacheId, fileSize);
+    const file = fs.createReadStream("cache.tar", {
+        start: 0,
+        end: fileStat.size,
+    });
+    await uploadCache(cacheId, file, fileStat.size);
+    await commitCache(cacheId, fileStat.size);
     return true;
 }
 

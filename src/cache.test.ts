@@ -1,10 +1,10 @@
 import { jest } from "@jest/globals";
 
-const fs = {
-  createReadStream: jest.fn(),
-  statSync: jest.fn(),
-};
+const fs = { createReadStream: jest.fn() };
 jest.unstable_mockModule("node:fs", () => ({ default: fs }));
+
+const fsPromises = { stat: jest.fn() };
+jest.unstable_mockModule("node:fs/promises", () => ({ default: fsPromises }));
 
 const commitCache = jest.fn();
 const getCache = jest.fn();
@@ -81,7 +81,7 @@ describe("save files to caches", () => {
       expect(filePaths).toEqual(["some file path", "some other file path"]);
     });
 
-    fs.statSync.mockImplementation((path) => {
+    fsPromises.stat.mockImplementation(async (path) => {
       expect(path).toBe("cache.tar");
       return { size: 1024 };
     });
@@ -125,7 +125,7 @@ describe("save files to caches", () => {
       expect(filePaths).toEqual(["some file path", "some other file path"]);
     });
 
-    fs.statSync.mockImplementation((path) => {
+    fsPromises.stat.mockImplementation(async (path) => {
       expect(path).toBe("cache.tar");
       return { size: 1024 };
     });

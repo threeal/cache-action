@@ -1,6 +1,6 @@
 import { jest } from "@jest/globals";
 
-class MockedWritable {
+class Writable {
   #writtenData = "";
   data?: string;
 
@@ -13,7 +13,7 @@ class MockedWritable {
   }
 }
 
-class MockedRequest extends MockedWritable {
+class Request extends Writable {
   headers: Record<string, string> = {};
 
   #onResponse?: (res: any) => void;
@@ -44,7 +44,7 @@ class MockedRequest extends MockedWritable {
   }
 }
 
-class MockedReadable {
+class Readable {
   #onData?: (chunk: any) => void;
   #onEnd?: () => void;
 
@@ -68,13 +68,13 @@ class MockedReadable {
     if (this.#onEnd !== undefined) this.#onEnd();
   }
 
-  pipe(writable: MockedWritable): void {
+  pipe(writable: Writable): void {
     this.on("data", (chunk: any) => writable.write(chunk));
     this.on("end", () => writable.end());
   }
 }
 
-class MockedResponse extends MockedReadable {
+class Response extends Readable {
   statusCode: number | undefined;
 
   #onError?: (err: Error) => void;
@@ -100,30 +100,27 @@ class MockedResponse extends MockedReadable {
   }
 }
 
-const https = {
-  request: jest.fn(),
-};
-
-jest.unstable_mockModule("node:https", () => ({ default: https }));
-
 describe("create HTTPS requests for the GitHub cache API endpoint", () => {
   it("should create an HTTPS request", async () => {
+    const https = { request: jest.fn() };
+    jest.unstable_mockModule("node:https", () => ({ default: https }));
+
     const { createRequest } = await import("./https.js");
 
-    process.env["ACTIONS_CACHE_URL"] = "http://localhost:12345/";
-    process.env["ACTIONS_RUNTIME_TOKEN"] = "some token";
+    process.env["ACTIONS_CACHE_URL"] = "a-url/";
+    process.env["ACTIONS_RUNTIME_TOKEN"] = "a-token";
 
     https.request.mockImplementation((url, options) => {
-      expect(url).toBe("http://localhost:12345/_apis/artifactcache/resources");
+      expect(url).toBe("a-url/_apis/artifactcache/resources");
       expect(options).toBe("some options");
-      return new MockedRequest();
+      return new Request();
     });
 
     const req = createRequest("resources", "some options" as any) as any;
 
     expect(req.headers).toEqual({
       Accept: "application/json;api-version=6.0-preview",
-      Authorization: "Bearer some token",
+      Authorization: "Bearer a-token",
     });
   });
 });
@@ -132,25 +129,25 @@ describe("send HTTPS requests containing raw data", () => {
   it("should send an HTTPS request", async () => {
     const { sendRequest } = await import("./https.js");
 
-    const req = new MockedRequest();
-    const prom = sendRequest(req as any, "some data");
+    const req = new Request();
+    const prom = sendRequest(req as any, "a message");
 
-    req.response("some response");
+    req.response("a response");
 
-    await expect(prom).resolves.toBe("some response");
+    await expect(prom).resolves.toBe("a response");
     expect(req.headers).toEqual({});
-    expect(req.data).toBe("some data");
+    expect(req.data).toBe("a message");
   });
 
   it("should fail to send an HTTPS request", async () => {
     const { sendRequest } = await import("./https.js");
 
-    const req = new MockedRequest();
+    const req = new Request();
     const prom = sendRequest(req as any);
 
-    req.error(new Error("some error"));
+    req.error(new Error("an error"));
 
-    await expect(prom).rejects.toThrow("some error");
+    await expect(prom).rejects.toThrow("an error");
   });
 });
 
@@ -158,14 +155,14 @@ describe("send HTTPS requests containing JSON data", () => {
   it("should send an HTTPS request", async () => {
     const { sendJsonRequest } = await import("./https.js");
 
-    const req = new MockedRequest();
-    const prom = sendJsonRequest(req as any, { message: "some message" });
+    const req = new Request();
+    const prom = sendJsonRequest(req as any, { message: "a message" });
 
-    req.response("some response");
+    req.response("a response");
 
-    await expect(prom).resolves.toBe("some response");
+    await expect(prom).resolves.toBe("a response");
     expect(req.headers).toEqual({ "Content-Type": "application/json" });
-    expect(req.data).toBe(JSON.stringify({ message: "some message" }));
+    expect(req.data).toBe(JSON.stringify({ message: "a message" }));
   });
 });
 
@@ -173,33 +170,33 @@ describe("send HTTPS requests containing binary streams", () => {
   it("should send an HTTPS request", async () => {
     const { sendStreamRequest } = await import("./https.js");
 
-    const req = new MockedRequest();
-    const bin = new MockedReadable();
+    const req = new Request();
+    const bin = new Readable();
     const prom = sendStreamRequest(req as any, bin as any, 0, 1024);
 
-    bin.write("some data");
+    bin.write("a message");
     bin.end();
 
-    req.response("some response");
+    req.response("a response");
 
-    await expect(prom).resolves.toBe("some response");
+    await expect(prom).resolves.toBe("a response");
     expect(req.headers).toEqual({
       "Content-Type": "application/octet-stream",
       "Content-Range": "bytes 0-1024/*",
     });
-    expect(req.data).toBe("some data");
+    expect(req.data).toBe("a message");
   });
 
   it("should fail to send an HTTPS request", async () => {
     const { sendStreamRequest } = await import("./https.js");
 
-    const req = new MockedRequest();
-    const bin = new MockedReadable();
+    const req = new Request();
+    const bin = new Readable();
     const prom = sendStreamRequest(req as any, bin as any, 0, 1024);
 
-    req.error(new Error("some error"));
+    req.error(new Error("an error"));
 
-    await expect(prom).rejects.toThrow("some error");
+    await expect(prom).rejects.toThrow("an error");
   });
 });
 
@@ -207,24 +204,24 @@ describe("handle HTTPS responses containing raw data", () => {
   it("should handle an HTTPS response", async () => {
     const { handleResponse } = await import("./https.js");
 
-    const res = new MockedResponse();
+    const res = new Response();
     const prom = handleResponse(res as any);
 
-    res.write("some data");
+    res.write("a message");
     res.end();
 
-    await expect(prom).resolves.toEqual("some data");
+    await expect(prom).resolves.toEqual("a message");
   });
 
   it("should fail to handle an HTTPS response", async () => {
     const { handleResponse } = await import("./https.js");
 
-    const res = new MockedResponse();
+    const res = new Response();
     const prom = handleResponse(res as any);
 
-    res.error(new Error("some error"));
+    res.error(new Error("an error"));
 
-    await expect(prom).rejects.toThrow("some error");
+    await expect(prom).rejects.toThrow("an error");
   });
 });
 
@@ -232,13 +229,13 @@ describe("handle HTTPS responses containing JSON data", () => {
   it("should handle an HTTPS response", async () => {
     const { handleJsonResponse } = await import("./https.js");
 
-    const res = new MockedResponse();
+    const res = new Response();
     const prom = handleJsonResponse(res as any);
 
-    res.write(JSON.stringify({ message: "some message" }));
+    res.write(JSON.stringify({ message: "a message" }));
     res.end();
 
-    await expect(prom).resolves.toEqual({ message: "some message" });
+    await expect(prom).resolves.toEqual({ message: "a message" });
   });
 });
 
@@ -246,12 +243,12 @@ describe("handle HTTPS responses containing error data", () => {
   it("should handle an HTTPS response", async () => {
     const { handleErrorResponse } = await import("./https.js");
 
-    const res = new MockedResponse(500);
+    const res = new Response(500);
     const prom = handleErrorResponse(res as any);
 
-    res.write(JSON.stringify({ message: "some error" }));
+    res.write(JSON.stringify({ message: "an error" }));
     res.end();
 
-    await expect(prom).resolves.toEqual(new Error("some error (500)"));
+    await expect(prom).resolves.toEqual(new Error("an error (500)"));
   });
 });

@@ -1,251 +1,170 @@
 import { jest } from "@jest/globals";
 
-const createRequest = jest.fn();
-const handleErrorResponse = jest.fn();
-const handleJsonResponse = jest.fn();
-const handleResponse = jest.fn();
-const sendJsonRequest = jest.fn();
-const sendRequest = jest.fn();
-const sendStreamRequest = jest.fn();
+interface Response {
+  statusCode: number;
+  data: string;
+}
+
+let requestHandler: (req: any, data: string) => Response;
+beforeEach(() => {
+  requestHandler = () => {
+    throw new Error("Unimplemented");
+  };
+});
 
 jest.unstable_mockModule("./https.js", () => ({
-  createRequest,
-  handleErrorResponse,
-  handleJsonResponse,
-  handleResponse,
-  sendJsonRequest,
-  sendRequest,
-  sendStreamRequest,
+  createRequest: (resourcePath: string, options: object) => {
+    return { resourcePath, ...options };
+  },
+  handleErrorResponse: async (res: Response) => {
+    return new Error(res.data);
+  },
+  handleJsonResponse: async (res: Response) => {
+    return JSON.parse(res.data);
+  },
+  handleResponse: async (res: Response) => {
+    return res.data;
+  },
+  sendJsonRequest: async (req: any, data: any) => {
+    return requestHandler(req, JSON.stringify(data));
+  },
+  sendRequest: async (req: any, data: string) => {
+    return requestHandler(req, data);
+  },
+  sendStreamRequest: async (
+    req: any,
+    file: () => string,
+    start: number,
+    end: number,
+  ) => {
+    return requestHandler(req, file().substring(start, end));
+  },
 }));
 
 describe("retrieve caches", () => {
-  beforeAll(() => {
-    createRequest.mockImplementation((resourcePath, options) => {
-      expect(resourcePath).toBe("cache?keys=some-key&version=some-version");
-      expect(options).toEqual({ method: "GET" });
-      return "some request";
-    });
-  });
-
   it("should retrieve a cache", async () => {
     const { getCache } = await import("./cache.js");
 
-    sendRequest.mockImplementation(async (req, data) => {
-      expect(req).toBe("some request");
+    requestHandler = (req, data) => {
+      expect(req).toEqual({
+        resourcePath: "cache?keys=a-key&version=a-version",
+        method: "GET",
+      });
       expect(data).toBeUndefined();
-      return { statusCode: 200 };
-    });
+      return { statusCode: 200, data: JSON.stringify("a cache") };
+    };
 
-    handleJsonResponse.mockImplementation(async (res) => {
-      expect(res).toEqual({ statusCode: 200 });
-      return "some cache";
-    });
-
-    const cache = await getCache("some-key", "some-version");
-    expect(cache).toBe("some cache");
+    const cache = await getCache("a-key", "a-version");
+    expect(cache).toBe("a cache");
   });
 
   it("should not retrieve a non-existing cache", async () => {
     const { getCache } = await import("./cache.js");
 
-    sendRequest.mockImplementation(async (req, data) => {
-      expect(req).toBe("some request");
-      expect(data).toBeUndefined();
-      return { statusCode: 204 };
-    });
+    requestHandler = () => ({ statusCode: 204, data: "" });
 
-    handleResponse.mockImplementation(async (res) => {
-      expect(res).toEqual({ statusCode: 204 });
-      return "";
-    });
-
-    const cache = await getCache("some-key", "some-version");
+    const cache = await getCache("a-key", "a-version");
     expect(cache).toBeNull();
   });
 
   it("should fail to retrieve a cache", async () => {
     const { getCache } = await import("./cache.js");
 
-    sendRequest.mockImplementation(async (req, data) => {
-      expect(req).toBe("some request");
-      expect(data).toBeUndefined();
-      return { statusCode: 500 };
-    });
+    requestHandler = () => ({ statusCode: 500, data: "an error" });
 
-    handleErrorResponse.mockImplementation(async (res) => {
-      expect(res).toEqual({ statusCode: 500 });
-      return new Error("some error");
-    });
-
-    const prom = getCache("some-key", "some-version");
-    await expect(prom).rejects.toThrow("some error");
+    const prom = getCache("a-key", "a-version");
+    await expect(prom).rejects.toThrow("an error");
   });
 });
 
 describe("reserve caches", () => {
-  beforeAll(() => {
-    createRequest.mockImplementation((resourcePath, options) => {
-      expect(resourcePath).toBe("caches");
-      expect(options).toEqual({ method: "POST" });
-      return "some request";
-    });
-  });
-
   it("should reserve a cache", async () => {
     const { reserveCache } = await import("./cache.js");
 
-    sendJsonRequest.mockImplementation(async (req, data) => {
-      expect(req).toBe("some request");
-      expect(data).toEqual({
-        key: "some-key",
-        version: "some-version",
-        cacheSize: 1024,
+    requestHandler = (req, data) => {
+      expect(req).toEqual({
+        resourcePath: "caches",
+        method: "POST",
       });
-      return { statusCode: 201 };
-    });
+      expect(JSON.parse(data)).toEqual({
+        key: "a-key",
+        version: "a-version",
+        cacheSize: 4,
+      });
+      return { statusCode: 201, data: JSON.stringify({ cacheId: 32 }) };
+    };
 
-    handleJsonResponse.mockImplementation(async (res) => {
-      expect(res).toEqual({ statusCode: 201 });
-      return { cacheId: 32 };
-    });
-
-    const cacheId = await reserveCache("some-key", "some-version", 1024);
+    const cacheId = await reserveCache("a-key", "a-version", 4);
     expect(cacheId).toBe(32);
   });
 
   it("should not reserve a reserved cache", async () => {
     const { reserveCache } = await import("./cache.js");
 
-    sendJsonRequest.mockImplementation(async (req, data) => {
-      expect(req).toBe("some request");
-      expect(data).toEqual({
-        key: "some-key",
-        version: "some-version",
-        cacheSize: 1024,
-      });
-      return { statusCode: 409 };
-    });
+    requestHandler = () => ({ statusCode: 409, data: "" });
 
-    handleResponse.mockImplementation(async (res) => {
-      expect(res).toEqual({ statusCode: 409 });
-      return "";
-    });
-
-    const cacheId = await reserveCache("some-key", "some-version", 1024);
+    const cacheId = await reserveCache("a-key", "a-version", 4);
     expect(cacheId).toBeNull();
   });
 
   it("should fail to reserve a cache", async () => {
     const { reserveCache } = await import("./cache.js");
 
-    sendJsonRequest.mockImplementation(async (req, data) => {
-      expect(req).toBe("some request");
-      expect(data).toEqual({
-        key: "some-key",
-        version: "some-version",
-        cacheSize: 1024,
-      });
-      return { statusCode: 500 };
-    });
+    requestHandler = () => ({ statusCode: 500, data: "an error" });
 
-    handleErrorResponse.mockImplementation(async (res) => {
-      expect(res).toEqual({ statusCode: 500 });
-      return new Error("some error");
-    });
-
-    const prom = reserveCache("some-key", "some-version", 1024);
-    await expect(prom).rejects.toThrow("some error");
+    const prom = reserveCache("a-key", "a-version", 4);
+    await expect(prom).rejects.toThrow("an error");
   });
 });
 
 describe("upload files to caches", () => {
-  beforeAll(() => {
-    createRequest.mockImplementation((resourcePath, options) => {
-      expect(resourcePath).toBe("caches/32");
-      expect(options).toEqual({ method: "PATCH" });
-      return "some request";
-    });
-  });
-
   it("should upload a file to a cache", async () => {
     const { uploadCache } = await import("./cache.js");
 
-    sendStreamRequest.mockImplementation(async (req, bin, start, end) => {
-      expect(req).toBe("some request");
-      expect(bin).toEqual("some file");
-      expect(start).toBe(0);
-      expect(end).toBe(1024);
-      return { statusCode: 204 };
-    });
+    requestHandler = (req, data) => {
+      expect(req).toEqual({
+        resourcePath: "caches/32",
+        method: "PATCH",
+      });
+      expect(data).toBe("data");
+      return { statusCode: 204, data: "" };
+    };
 
-    handleResponse.mockImplementation(async (res) => {
-      expect(res).toEqual({ statusCode: 204 });
-    });
-
-    await uploadCache(32, "some file" as any, 1024);
+    await uploadCache(32, (() => "data") as any, 4);
   });
 
   it("should fail to upload a file to a cache", async () => {
     const { uploadCache } = await import("./cache.js");
 
-    sendStreamRequest.mockImplementation(async (req, bin, start, end) => {
-      expect(req).toBe("some request");
-      expect(bin).toEqual("some file");
-      expect(start).toBe(0);
-      expect(end).toBe(1024);
-      return { statusCode: 500 };
-    });
+    requestHandler = () => ({ statusCode: 500, data: "an error" });
 
-    handleErrorResponse.mockImplementation(async (res) => {
-      expect(res).toEqual({ statusCode: 500 });
-      return new Error("some error");
-    });
-
-    const prom = uploadCache(32, "some file" as any, 1024);
-    await expect(prom).rejects.toThrow("some error");
+    const prom = uploadCache(32, (() => "data") as any, 4);
+    await expect(prom).rejects.toThrow("an error");
   });
 });
 
 describe("commit caches", () => {
-  beforeAll(() => {
-    createRequest.mockImplementation((resourcePath, options) => {
-      expect(resourcePath).toBe("caches/32");
-      expect(options).toEqual({ method: "POST" });
-      return "some request";
-    });
-  });
-
   it("should commit a cache", async () => {
     const { commitCache } = await import("./cache.js");
 
-    sendJsonRequest.mockImplementation(async (req, data) => {
-      expect(req).toBe("some request");
-      expect(data).toEqual({ size: 1024 });
-      return { statusCode: 204 };
-    });
+    requestHandler = (req, data) => {
+      expect(req).toEqual({
+        resourcePath: "caches/32",
+        method: "POST",
+      });
+      expect(JSON.parse(data)).toEqual({ size: 4 });
+      return { statusCode: 204, data: "" };
+    };
 
-    handleResponse.mockImplementation(async (res) => {
-      expect(res).toEqual({ statusCode: 204 });
-    });
-
-    await commitCache(32, 1024);
+    await commitCache(32, 4);
   });
 
   it("should fail to commit a cache", async () => {
     const { commitCache } = await import("./cache.js");
 
-    sendJsonRequest.mockImplementation(async (req, data) => {
-      expect(req).toBe("some request");
-      expect(data).toEqual({ size: 1024 });
-      return { statusCode: 500 };
-    });
+    requestHandler = () => ({ statusCode: 500, data: "an error" });
 
-    handleErrorResponse.mockImplementation(async (res) => {
-      expect(res).toEqual({ statusCode: 500 });
-      return new Error("some error");
-    });
-
-    const prom = commitCache(32, 1024);
-    await expect(prom).rejects.toThrow("some error");
+    const prom = commitCache(32, 4);
+    await expect(prom).rejects.toThrow("an error");
   });
 });

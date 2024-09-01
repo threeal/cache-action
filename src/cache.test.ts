@@ -66,10 +66,10 @@ jest.unstable_mockModule("node:fs/promises", () => ({
       return prefix + "XXXX";
     },
     rm: async (path: string, options: any) => {
-      if (!options.recursive) {
-        const file = getFile(root, path);
-        if (typeof file === "object")
-          throw new Error(`path ${path} is not empty`);
+      const file = getFile(root, path);
+      if (file === undefined) throw new Error(`path ${path} does not exist`);
+      if (!options.recursive && typeof file === "object") {
+        throw new Error(`path ${path} is not empty`);
       }
       setFile(root, path, undefined);
     },
@@ -130,13 +130,9 @@ jest.unstable_mockModule("./api/cache.js", () => ({
     if (url === undefined) throw new Error(`cache ${id} does not exist`);
 
     const cloud = clouds[url];
-    if (cloud === undefined) {
-      throw new Error(`cloud ${url} does not exist`);
-    }
-
-    if (cloud.committed) {
+    if (cloud === undefined) throw new Error(`cloud ${url} does not exist`);
+    if (cloud.committed)
       throw new Error(`cloud ${url} has already been committed`);
-    }
 
     cloud.data = file.substring(0, Math.min(cloud.size, fileSize));
   },
@@ -146,10 +142,11 @@ jest.unstable_mockModule("./api/download.js", () => ({
   downloadFile: async (url: string, savePath: string) => {
     const cloud = clouds[url];
     if (cloud === undefined) throw new Error(`cloud ${url} does not exist`);
-
-    if (!cloud.committed) {
+    if (!cloud.committed)
       throw new Error(`cloud ${url} has not yet been committed`);
-    }
+
+    const file = getFile(root, savePath.split("/").slice(0, -1).join("/"));
+    if (file == undefined) throw new Error(`path ${savePath} does not exist`);
 
     setFile(root, savePath, cloud.data);
   },
@@ -161,6 +158,11 @@ jest.unstable_mockModule("./archive.js", () => ({
     for (const filePath of filePaths) {
       setFile(archive, filePath, getFile(root, filePath));
     }
+
+    const file = getFile(root, archivePath.split("/").slice(0, -1).join("/"));
+    if (file == undefined)
+      throw new Error(`path ${archivePath} does not exist`);
+
     setFile(root, archivePath, JSON.stringify({ archive, filePaths }));
   },
   extractFiles: async (archivePath: string) => {

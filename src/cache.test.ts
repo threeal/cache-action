@@ -7,10 +7,35 @@ interface Cloud {
   committed: boolean;
 }
 
-const cacheIds: Partial<Record<string, number>> = {};
-const cacheUrls: Partial<Record<number, string>> = {};
-const clouds: Partial<Record<string, Cloud>> = {};
-let files: Partial<Record<string, string>> = {};
+type File = string | Directory | undefined;
+interface Directory extends Record<string, File> {}
+
+const cacheIds: Record<string, number | undefined> = {};
+const cacheUrls: Record<number, string | undefined> = {};
+const clouds: Record<string, Cloud | undefined> = {};
+let root: Directory = {};
+
+const getFile = (root: Directory, path: string): File => {
+  let file: File = root;
+  for (const subPath of path.split("/")) {
+    if (file === undefined || typeof file === "string") return undefined;
+    file = file[subPath];
+  }
+  return file;
+};
+
+const setFile = (root: Directory, path: string, file: File): void => {
+  const subPaths = path.split("/");
+  const lastSubPath = subPaths.pop();
+  if (lastSubPath === undefined) return;
+  let subDir: Directory = root;
+  for (const subPath of subPaths) {
+    if (subDir[subPath] === undefined) subDir[subPath] = {};
+    if (typeof subDir[subPath] === "string") subDir[subPath] = {};
+    subDir = subDir[subPath];
+  }
+  subDir[lastSubPath] = file;
+};
 
 jest.unstable_mockModule("node:fs", () => ({
   default: {
@@ -18,9 +43,11 @@ jest.unstable_mockModule("node:fs", () => ({
       path: string,
       options: { start: number; end: number },
     ) => {
-      const content = files[path];
-      if (content === undefined) throw new Error(`file ${path} does not exist`);
-      return content.substring(options.start, options.end);
+      const file = getFile(root, path);
+      if (file === undefined) throw new Error(`path ${path} does not exist`);
+      if (typeof file !== "string")
+        throw new Error(`path ${path} is a directory`);
+      return file.substring(options.start, options.end);
     },
   },
 }));
@@ -28,9 +55,11 @@ jest.unstable_mockModule("node:fs", () => ({
 jest.unstable_mockModule("node:fs/promises", () => ({
   default: {
     stat: async (path: string) => {
-      const content = files[path];
-      if (content === undefined) throw new Error(`file ${path} does not exist`);
-      return { size: content.length };
+      const file = getFile(root, path);
+      if (file === undefined) throw new Error(`path ${path} does not exist`);
+      if (typeof file !== "string")
+        throw new Error(`path ${path} is a directory`);
+      return { size: file.length };
     },
   },
 }));
@@ -98,45 +127,47 @@ jest.unstable_mockModule("./api/download.js", () => ({
       throw new Error(`cloud ${url} has not yet been committed`);
     }
 
-    files[savePath] = cloud.data;
+    setFile(root, savePath, cloud.data);
   },
 }));
 
 jest.unstable_mockModule("./archive.js", () => ({
   compressFiles: async (archivePath: string, filePaths: string[]) => {
-    files[archivePath] = JSON.stringify(
-      filePaths.map((filePath) => ({
-        path: filePath,
-        content: files[filePath],
-      })),
-    );
+    const archive = {};
+    for (const filePath of filePaths) {
+      setFile(archive, filePath, getFile(root, filePath));
+    }
+    setFile(root, archivePath, JSON.stringify({ archive, filePaths }));
   },
   extractFiles: async (archivePath: string) => {
-    const file = files[archivePath];
-    if (!file) throw new Error(`file ${archivePath} does not exist`);
+    const file = getFile(root, archivePath);
+    if (file === undefined)
+      throw new Error(`path ${archivePath} does not exist`);
+    if (typeof file !== "string")
+      throw new Error(`path ${archivePath} is a directory`);
 
-    const archives = JSON.parse(file) as {
-      path: string;
-      content: string | undefined;
-    }[];
-    for (const archive of archives) {
-      files[archive.path] = archive.content;
+    const { archive, filePaths } = JSON.parse(file);
+    for (const filePath of filePaths) {
+      setFile(root, filePath, getFile(archive, filePath));
     }
   },
 }));
 
 describe("save and restore files from caches", () => {
   beforeEach(() => {
-    files = {};
+    root = {};
   });
 
   it("should save files to a cache", async () => {
     const { saveCache } = await import("./cache.js");
 
-    files = {
+    root = {
       "a-file": "a content",
       "another-file": "another content",
-      "a-dir/a-file": "a content",
+      "a-dir": {
+        "a-file": "a content",
+        "another-file": "another content",
+      },
     };
 
     const saved = await saveCache("a-key", "a-version", [
@@ -150,10 +181,13 @@ describe("save and restore files from caches", () => {
   it("should not save files to an existing cache", async () => {
     const { saveCache } = await import("./cache.js");
 
-    files = {
+    root = {
       "a-file": "a content",
       "another-file": "another content",
-      "a-dir/a-file": "a content",
+      "a-dir": {
+        "a-file": "a content",
+        "another-file": "another content",
+      },
     };
 
     const saved = await saveCache("a-key", "a-version", [
@@ -171,12 +205,14 @@ describe("save and restore files from caches", () => {
     expect(restored).toBe(true);
 
     // TODO: remove the downloaded archive after restoring cache.
-    files["cache.tar"] = undefined;
+    root["cache.tar"] = undefined;
 
-    expect(files).toEqual({
+    expect(root).toEqual({
       "a-file": "a content",
       "another-file": "another content",
-      "a-dir/a-file": "a content",
+      "a-dir": {
+        "a-file": "a content",
+      },
     });
   });
 
@@ -186,6 +222,6 @@ describe("save and restore files from caches", () => {
     const restored = await restoreCache("another-key", "another-version");
     expect(restored).toBe(false);
 
-    expect(files).toEqual({});
+    expect(root).toEqual({});
   });
 });

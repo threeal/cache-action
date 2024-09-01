@@ -35,7 +35,6 @@ export async function restoreCache(
   await extractFiles(archivePath);
 
   await fsPromises.rm(tempDir, { recursive: true });
-
   return true;
 }
 
@@ -53,15 +52,25 @@ export async function saveCache(
   version: string,
   filePaths: string[],
 ): Promise<boolean> {
-  await compressFiles("cache.tar", filePaths);
-  const fileStat = await fsPromises.stat("cache.tar");
+  const tempDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "temp-"));
+  const archivePath = path.join(tempDir, "cache.tar");
+
+  await compressFiles(archivePath, filePaths);
+  const fileStat = await fsPromises.stat(archivePath);
+
   const cacheId = await reserveCache(key, version, fileStat.size);
-  if (cacheId === null) return false;
-  const file = fs.createReadStream("cache.tar", {
+  if (cacheId === null) {
+    fsPromises.rm(tempDir, { recursive: true });
+    return false;
+  }
+
+  const file = fs.createReadStream(archivePath, {
     start: 0,
     end: fileStat.size,
   });
   await uploadCache(cacheId, file, fileStat.size);
   await commitCache(cacheId, fileStat.size);
+
+  fsPromises.rm(tempDir, { recursive: true });
   return true;
 }

@@ -186,6 +186,7 @@ describe("save and restore files from caches", () => {
     const { saveCache } = await import("./cache.js");
 
     root = {
+      ...root,
       "a-file": "a content",
       "another-file": "another content",
       "a-dir": {
@@ -200,12 +201,23 @@ describe("save and restore files from caches", () => {
       "a-dir/a-file",
     ]);
     expect(saved).toBe(true);
+
+    expect(root).toEqual({
+      tmp: {},
+      "a-file": "a content",
+      "another-file": "another content",
+      "a-dir": {
+        "a-file": "a content",
+        "another-file": "another content",
+      },
+    });
   });
 
   it("should not save files to an existing cache", async () => {
     const { saveCache } = await import("./cache.js");
 
     root = {
+      ...root,
       "a-file": "a content",
       "another-file": "another content",
       "a-dir": {
@@ -220,6 +232,16 @@ describe("save and restore files from caches", () => {
       "a-dir/a-file",
     ]);
     expect(saved).toBe(false);
+
+    expect(root).toEqual({
+      tmp: {},
+      "a-file": "a content",
+      "another-file": "another content",
+      "a-dir": {
+        "a-file": "a content",
+        "another-file": "another content",
+      },
+    });
   });
 
   it("should restore files from a cache", async () => {

@@ -1,5 +1,7 @@
 import fs from "node:fs";
 import fsPromises from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 
 import {
   commitCache,
@@ -25,8 +27,15 @@ export async function restoreCache(
 ): Promise<boolean> {
   const cache = await getCache(key, version);
   if (cache === null) return false;
-  await downloadFile(cache.archiveLocation, "cache.tar");
-  await extractFiles("cache.tar");
+
+  const tempDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "temp-"));
+  const archivePath = path.join(tempDir, "cache.tar");
+
+  await downloadFile(cache.archiveLocation, archivePath);
+  await extractFiles(archivePath);
+
+  await fsPromises.rm(tempDir, { recursive: true });
+
   return true;
 }
 

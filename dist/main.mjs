@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
-import 'node:path';
-import 'node:fs/promises';
+import path from 'node:path';
+import fsPromises from 'node:fs/promises';
 import https from 'node:https';
 import streamPromises from 'node:stream/promises';
 import { execFile } from 'node:child_process';
@@ -168,8 +168,11 @@ async function restoreCache(key, version) {
     const cache = await getCache(key, version);
     if (cache === null)
         return false;
-    await downloadFile(cache.archiveLocation, "cache.tar");
-    await extractFiles("cache.tar");
+    const tempDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "temp-"));
+    const archivePath = path.join(tempDir, "cache.tar");
+    await downloadFile(cache.archiveLocation, archivePath);
+    await extractFiles(archivePath);
+    await fsPromises.rm(tempDir, { recursive: true });
     return true;
 }
 

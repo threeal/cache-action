@@ -82,25 +82,40 @@ export async function reserveCache(
 }
 
 /**
- * Uploads a file to a cache with the specified ID.
+ * Uploads a file to the cache with the specified ID.
  *
  * @param id - The cache ID.
- * @param file - The path of the file to upload.
+ * @param filePath - The path of the file to upload.
  * @param fileSize - The size of the file to upload, in bytes.
- * @returns A promise that resolves with nothing.
+ * @returns A promise that resolves to nothing.
  */
 export async function uploadCache(
   id: number,
   filePath: string,
   fileSize: number,
+  options?: { maxChunkSize?: number },
 ): Promise<void> {
-  const bin = fs.createReadStream(filePath, { start: 0, end: fileSize });
-  const req = createRequest(`caches/${id}`, { method: "PATCH" });
-  const res = await sendStreamRequest(req, bin, 0, fileSize);
-  if (res.statusCode !== 204) {
-    throw await handleErrorResponse(res);
+  const { maxChunkSize } = {
+    maxChunkSize: 32 * 1024 * 1024,
+    ...options,
+  };
+
+  for (let start = 0; start < fileSize; start += maxChunkSize) {
+    const end = Math.min(start + maxChunkSize - 1, fileSize);
+    const bin = fs.createReadStream(filePath, { start, end });
+
+    const req = createRequest(`caches/${id}`, { method: "PATCH" });
+    const res = await sendStreamRequest(req, bin, start, end);
+
+    switch (res.statusCode) {
+      case 204:
+        await handleResponse(res);
+        break;
+
+      default:
+        throw await handleErrorResponse(res);
+    }
   }
-  await handleResponse(res);
 }
 
 /**

@@ -5,12 +5,25 @@ interface Response {
   data: string;
 }
 
+let files: Record<string, string | undefined> = {};
 let requestHandler: (req: any, data: string) => Response;
+
 beforeEach(() => {
+  files = {};
   requestHandler = () => {
     throw new Error("Unimplemented");
   };
 });
+
+jest.unstable_mockModule("node:fs", () => ({
+  default: {
+    createReadStream: (path: string, options: any) => {
+      const content = files[path];
+      if (content === undefined) throw new Error(`path ${path} does not exist`);
+      return () => content.substring(options.start, options.end);
+    },
+  },
+}));
 
 jest.unstable_mockModule("./https.js", () => ({
   createRequest: (resourcePath: string, options: object) => {
@@ -33,11 +46,11 @@ jest.unstable_mockModule("./https.js", () => ({
   },
   sendStreamRequest: async (
     req: any,
-    file: () => string,
+    bin: () => string,
     start: number,
     end: number,
   ) => {
-    return requestHandler(req, file().substring(start, end));
+    return requestHandler(req, bin().substring(start, end));
   },
 }));
 
@@ -121,6 +134,8 @@ describe("upload files to caches", () => {
   it("should upload a file to a cache", async () => {
     const { uploadCache } = await import("./cache.js");
 
+    files["a-file"] = "data";
+
     requestHandler = (req, data) => {
       expect(req).toEqual({
         resourcePath: "caches/32",
@@ -130,15 +145,17 @@ describe("upload files to caches", () => {
       return { statusCode: 204, data: "" };
     };
 
-    await uploadCache(32, (() => "data") as any, 4);
+    await uploadCache(32, "a-file", 4);
   });
 
   it("should fail to upload a file to a cache", async () => {
     const { uploadCache } = await import("./cache.js");
 
+    files["a-file"] = "data";
+
     requestHandler = () => ({ statusCode: 500, data: "an error" });
 
-    const prom = uploadCache(32, (() => "data") as any, 4);
+    const prom = uploadCache(32, "a-file", 4);
     await expect(prom).rejects.toThrow("an error");
   });
 });

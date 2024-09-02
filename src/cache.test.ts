@@ -37,21 +37,6 @@ const setFile = (root: Directory, path: string, file: File): void => {
   subDir[lastSubPath] = file;
 };
 
-jest.unstable_mockModule("node:fs", () => ({
-  default: {
-    createReadStream: (
-      path: string,
-      options: { start: number; end: number },
-    ) => {
-      const file = getFile(root, path);
-      if (file === undefined) throw new Error(`path ${path} does not exist`);
-      if (typeof file === "object")
-        throw new Error(`path ${path} is a directory`);
-      return file.substring(options.start, options.end);
-    },
-  },
-}));
-
 jest.unstable_mockModule("node:fs/promises", () => ({
   default: {
     stat: async (path: string) => {
@@ -125,7 +110,7 @@ jest.unstable_mockModule("./api/cache.js", () => ({
     cacheIds[key + version] = cacheId;
     return cacheId;
   },
-  uploadCache: async (id: number, file: string, fileSize: number) => {
+  uploadCache: async (id: number, filePath: string, fileSize: number) => {
     const url = cacheUrls[id];
     if (url === undefined) throw new Error(`cache ${id} does not exist`);
 
@@ -133,6 +118,11 @@ jest.unstable_mockModule("./api/cache.js", () => ({
     if (cloud === undefined) throw new Error(`cloud ${url} does not exist`);
     if (cloud.committed)
       throw new Error(`cloud ${url} has already been committed`);
+
+    const file = getFile(root, filePath);
+    if (file === undefined) throw new Error(`path ${filePath} does not exist`);
+    if (typeof file === "object")
+      throw new Error(`path ${filePath} is a directory`);
 
     cloud.data = file.substring(0, Math.min(cloud.size, fileSize));
   },

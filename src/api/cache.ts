@@ -1,3 +1,5 @@
+import fs from "node:fs";
+
 import {
   createRequest,
   handleErrorResponse,
@@ -7,8 +9,6 @@ import {
   sendRequest,
   sendStreamRequest,
 } from "./https.js";
-
-import type stream from "node:stream";
 
 interface Cache {
   scope: string;
@@ -85,17 +85,18 @@ export async function reserveCache(
  * Uploads a file to a cache with the specified ID.
  *
  * @param id - The cache ID.
- * @param file - The readable stream of the file to upload.
+ * @param file - The path of the file to upload.
  * @param fileSize - The size of the file to upload, in bytes.
  * @returns A promise that resolves with nothing.
  */
 export async function uploadCache(
   id: number,
-  file: stream.Readable,
+  filePath: string,
   fileSize: number,
 ): Promise<void> {
+  const bin = fs.createReadStream(filePath, { start: 0, end: fileSize });
   const req = createRequest(`caches/${id}`, { method: "PATCH" });
-  const res = await sendStreamRequest(req, file, 0, fileSize);
+  const res = await sendStreamRequest(req, bin, 0, fileSize);
   if (res.statusCode !== 204) {
     throw await handleErrorResponse(res);
   }

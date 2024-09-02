@@ -158,13 +158,14 @@ async function reserveCache(key, version, size) {
  * Uploads a file to a cache with the specified ID.
  *
  * @param id - The cache ID.
- * @param file - The readable stream of the file to upload.
+ * @param file - The path of the file to upload.
  * @param fileSize - The size of the file to upload, in bytes.
  * @returns A promise that resolves with nothing.
  */
-async function uploadCache(id, file, fileSize) {
+async function uploadCache(id, filePath, fileSize) {
+    const bin = fs.createReadStream(filePath, { start: 0, end: fileSize });
     const req = createRequest(`caches/${id}`, { method: "PATCH" });
-    const res = await sendStreamRequest(req, file, 0, fileSize);
+    const res = await sendStreamRequest(req, bin, 0, fileSize);
     if (res.statusCode !== 204) {
         throw await handleErrorResponse(res);
     }
@@ -211,18 +212,14 @@ async function saveCache(key, version, filePaths) {
     const tempDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "temp-"));
     const archivePath = path.join(tempDir, "cache.tar");
     await compressFiles(archivePath, filePaths);
-    const fileStat = await fsPromises.stat(archivePath);
-    const cacheId = await reserveCache(key, version, fileStat.size);
+    const archiveStat = await fsPromises.stat(archivePath);
+    const cacheId = await reserveCache(key, version, archiveStat.size);
     if (cacheId === null) {
         fsPromises.rm(tempDir, { recursive: true });
         return false;
     }
-    const file = fs.createReadStream(archivePath, {
-        start: 0,
-        end: fileStat.size,
-    });
-    await uploadCache(cacheId, file, fileStat.size);
-    await commitCache(cacheId, fileStat.size);
+    await uploadCache(cacheId, archivePath, archiveStat.size);
+    await commitCache(cacheId, archiveStat.size);
     fsPromises.rm(tempDir, { recursive: true });
     return true;
 }

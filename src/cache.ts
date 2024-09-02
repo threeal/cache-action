@@ -1,5 +1,7 @@
 import fs from "node:fs";
 import fsPromises from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 
 import {
   commitCache,
@@ -25,8 +27,14 @@ export async function restoreCache(
 ): Promise<boolean> {
   const cache = await getCache(key, version);
   if (cache === null) return false;
-  await downloadFile(cache.archiveLocation, "cache.tar");
-  await extractFiles("cache.tar");
+
+  const tempDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "temp-"));
+  const archivePath = path.join(tempDir, "cache.tar");
+
+  await downloadFile(cache.archiveLocation, archivePath);
+  await extractFiles(archivePath);
+
+  await fsPromises.rm(tempDir, { recursive: true });
   return true;
 }
 
@@ -44,15 +52,25 @@ export async function saveCache(
   version: string,
   filePaths: string[],
 ): Promise<boolean> {
-  await compressFiles("cache.tar", filePaths);
-  const fileStat = await fsPromises.stat("cache.tar");
+  const tempDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "temp-"));
+  const archivePath = path.join(tempDir, "cache.tar");
+
+  await compressFiles(archivePath, filePaths);
+  const fileStat = await fsPromises.stat(archivePath);
+
   const cacheId = await reserveCache(key, version, fileStat.size);
-  if (cacheId === null) return false;
-  const file = fs.createReadStream("cache.tar", {
+  if (cacheId === null) {
+    fsPromises.rm(tempDir, { recursive: true });
+    return false;
+  }
+
+  const file = fs.createReadStream(archivePath, {
     start: 0,
     end: fileStat.size,
   });
   await uploadCache(cacheId, file, fileStat.size);
   await commitCache(cacheId, fileStat.size);
+
+  fsPromises.rm(tempDir, { recursive: true });
   return true;
 }

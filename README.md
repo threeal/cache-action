@@ -18,6 +18,39 @@ By default, this action will attempt to restore files from a cache if it exists;
 | ---------- | ----------------- | ----------------------------------------------------------------------- |
 | `restored` | `true` or `false` | A boolean value indicating whether the cache was successfully restored. |
 
+### Example Usages
+
+The following example demonstrates how to use this action to cache [Node.js](https://nodejs.org/) dependencies in a GitHub Action workflow:
+
+```yaml
+name: Build
+on:
+  push:
+jobs:
+  build-project:
+    name: Build Project
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Project
+        uses: actions/checkout@v4.1.7
+
+      - name: Cache Dependencies
+        id: cache-deps
+        uses: threeal/cache-action@v0.1.0
+        with:
+          key: node-deps
+          version: ${{ hashFiles('package-lock.json') }}
+          files: node_modules
+
+      - name: Install Dependencies
+        if: steps.cache-deps.outputs.restored == 'false'
+        run: npm install
+
+      # Do something
+```
+
+This action will attempt to restore a cache with the key `node-deps` and a version specified by the hash of the `package-lock.json` file. If the cache exists, it will restore the `node_modules` directory and skip dependency installation; otherwise, it will install the dependencies and later save the `node_modules` to the cache at the end of the workflow run.
+
 ## License
 
 This project is licensed under the terms of the [MIT License](./LICENSE).

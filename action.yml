@@ -1,6 +1,6 @@
 name: Cache Action
 author: Alfi Maulana
-description: Restore and save files to cache
+description: Save and restore files as a cache
 branding:
   icon: archive
   color: black

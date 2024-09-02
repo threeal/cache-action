@@ -155,20 +155,31 @@ async function reserveCache(key, version, size) {
     }
 }
 /**
- * Uploads a file to a cache with the specified ID.
+ * Uploads a file to the cache with the specified ID.
  *
  * @param id - The cache ID.
- * @param file - The readable stream of the file to upload.
+ * @param filePath - The path of the file to upload.
  * @param fileSize - The size of the file to upload, in bytes.
- * @returns A promise that resolves with nothing.
+ * @returns A promise that resolves to nothing.
  */
-async function uploadCache(id, file, fileSize) {
-    const req = createRequest(`caches/${id}`, { method: "PATCH" });
-    const res = await sendStreamRequest(req, file, 0, fileSize);
-    if (res.statusCode !== 204) {
-        throw await handleErrorResponse(res);
+async function uploadCache(id, filePath, fileSize, options) {
+    const { maxChunkSize } = {
+        maxChunkSize: 32 * 1024 * 1024,
+        ...options,
+    };
+    for (let start = 0; start < fileSize; start += maxChunkSize) {
+        const end = Math.min(start + maxChunkSize - 1, fileSize);
+        const bin = fs.createReadStream(filePath, { start, end });
+        const req = createRequest(`caches/${id}`, { method: "PATCH" });
+        const res = await sendStreamRequest(req, bin, start, end);
+        switch (res.statusCode) {
+            case 204:
+                await handleResponse(res);
+                break;
+            default:
+                throw await handleErrorResponse(res);
+        }
     }
-    await handleResponse(res);
 }
 /**
  * Commits a cache with the specified ID.
@@ -211,18 +222,14 @@ async function saveCache(key, version, filePaths) {
     const tempDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "temp-"));
     const archivePath = path.join(tempDir, "cache.tar");
     await compressFiles(archivePath, filePaths);
-    const fileStat = await fsPromises.stat(archivePath);
-    const cacheId = await reserveCache(key, version, fileStat.size);
+    const archiveStat = await fsPromises.stat(archivePath);
+    const cacheId = await reserveCache(key, version, archiveStat.size);
     if (cacheId === null) {
         fsPromises.rm(tempDir, { recursive: true });
         return false;
     }
-    const file = fs.createReadStream(archivePath, {
-        start: 0,
-        end: fileStat.size,
-    });
-    await uploadCache(cacheId, file, fileStat.size);
-    await commitCache(cacheId, fileStat.size);
+    await uploadCache(cacheId, archivePath, archiveStat.size);
+    await commitCache(cacheId, archiveStat.size);
     fsPromises.rm(tempDir, { recursive: true });
     return true;
 }

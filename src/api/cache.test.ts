@@ -5,12 +5,30 @@ interface Response {
   data: string;
 }
 
-let requestHandler: (req: any, data: string) => Response;
+let files: Record<string, string | undefined> = {};
+let requestHandler: (
+  req: any,
+  data: string,
+  start: number,
+  end: number,
+) => Response;
+
 beforeEach(() => {
+  files = {};
   requestHandler = () => {
     throw new Error("Unimplemented");
   };
 });
+
+jest.unstable_mockModule("node:fs", () => ({
+  default: {
+    createReadStream: (path: string, options: any) => {
+      const content = files[path];
+      if (content === undefined) throw new Error(`path ${path} does not exist`);
+      return () => content.substring(options.start, options.end + 1);
+    },
+  },
+}));
 
 jest.unstable_mockModule("./https.js", () => ({
   createRequest: (resourcePath: string, options: object) => {
@@ -26,18 +44,20 @@ jest.unstable_mockModule("./https.js", () => ({
     return res.data;
   },
   sendJsonRequest: async (req: any, data: any) => {
-    return requestHandler(req, JSON.stringify(data));
+    const jsonData = JSON.stringify(data);
+    return requestHandler(req, jsonData, 0, jsonData.length - 1);
   },
-  sendRequest: async (req: any, data: string) => {
-    return requestHandler(req, data);
+  sendRequest: async (req: any, data?: string) => {
+    if (data === undefined) data = "";
+    return requestHandler(req, data, 0, data.length - 1);
   },
   sendStreamRequest: async (
     req: any,
-    file: () => string,
+    bin: () => string,
     start: number,
     end: number,
   ) => {
-    return requestHandler(req, file().substring(start, end));
+    return requestHandler(req, bin(), start, end);
   },
 }));
 
@@ -50,7 +70,7 @@ describe("retrieve caches", () => {
         resourcePath: "cache?keys=a-key&version=a-version",
         method: "GET",
       });
-      expect(data).toBeUndefined();
+      expect(data).toBe("");
       return { statusCode: 200, data: JSON.stringify("a cache") };
     };
 
@@ -121,24 +141,37 @@ describe("upload files to caches", () => {
   it("should upload a file to a cache", async () => {
     const { uploadCache } = await import("./cache.js");
 
-    requestHandler = (req, data) => {
+    files["a-file"] = "lorem ipsum dolor sit amet";
+    let uploadedData = "";
+
+    requestHandler = (req, data, start, end) => {
       expect(req).toEqual({
         resourcePath: "caches/32",
         method: "PATCH",
       });
-      expect(data).toBe("data");
+
+      uploadedData =
+        uploadedData.substring(0, start) +
+        data +
+        uploadedData.substring(end + 1, uploadedData.length);
+
       return { statusCode: 204, data: "" };
     };
 
-    await uploadCache(32, (() => "data") as any, 4);
+    await uploadCache(32, "a-file", files["a-file"].length, {
+      maxChunkSize: 8,
+    });
+    expect(uploadedData).toBe("lorem ipsum dolor sit amet");
   });
 
   it("should fail to upload a file to a cache", async () => {
     const { uploadCache } = await import("./cache.js");
 
+    files["a-file"] = "lorem ipsum dolor sit amet";
+
     requestHandler = () => ({ statusCode: 500, data: "an error" });
 
-    const prom = uploadCache(32, (() => "data") as any, 4);
+    const prom = uploadCache(32, "a-file", files["a-file"].length);
     await expect(prom).rejects.toThrow("an error");
   });
 });

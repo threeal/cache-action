@@ -1,4 +1,3 @@
-import fs from "node:fs";
 import fsPromises from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -56,20 +55,16 @@ export async function saveCache(
   const archivePath = path.join(tempDir, "cache.tar");
 
   await compressFiles(archivePath, filePaths);
-  const fileStat = await fsPromises.stat(archivePath);
+  const archiveStat = await fsPromises.stat(archivePath);
 
-  const cacheId = await reserveCache(key, version, fileStat.size);
+  const cacheId = await reserveCache(key, version, archiveStat.size);
   if (cacheId === null) {
     fsPromises.rm(tempDir, { recursive: true });
     return false;
   }
 
-  const file = fs.createReadStream(archivePath, {
-    start: 0,
-    end: fileStat.size,
-  });
-  await uploadCache(cacheId, file, fileStat.size);
-  await commitCache(cacheId, fileStat.size);
+  await uploadCache(cacheId, archivePath, archiveStat.size);
+  await commitCache(cacheId, archiveStat.size);
 
   fsPromises.rm(tempDir, { recursive: true });
   return true;

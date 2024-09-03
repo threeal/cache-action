@@ -3,7 +3,6 @@ on:
   workflow_dispatch:
   pull_request:
   push:
-    branches: [main]
 jobs:
   test-package:
     name: Test Package
@@ -23,8 +22,8 @@ jobs:
       - name: Test Package
         run: yarn test
 
-  test-action-save-file:
-    name: Test Action to Save File
+  test-this-action-save-file:
+    name: Test This Action to Save File
     runs-on: ${{ matrix.os }}-latest
     strategy:
       fail-fast: false
@@ -40,31 +39,25 @@ jobs:
             dist
           sparse-checkout-cone-mode: false
 
-      - name: Prepare Files
+      - name: Clone Sample
         shell: bash
-        run: |
-          echo "a content" >> a-file
-          echo "another content" >> another-file
-          mkdir a-dir
-          echo "a content" >> a-dir/a-file
+        run: git clone https://github.com/opencv/opencv.git
 
       - name: Save Cache
         id: save-cache
         uses: ./cache-action
         with:
-          key: some-key-${{ matrix.os }}
+          key: benchmark-this-action-${{ matrix.os }}
           version: ${{ github.run_id }}
-          files: |
-            a-file another-file
-            a-dir/a-file
+          files: opencv
 
       - name: Check Output
         shell: bash
         run: test "${{ steps.save-cache.outputs.restored }}" == "false"
 
-  test-action-restore-file:
-    name: Test Action to Restore File
-    needs: test-action-save-file
+  test-this-action-restore-file:
+    name: Test This Action to Restore File
+    needs: test-this-action-save-file
     runs-on: ${{ matrix.os }}-latest
     strategy:
       fail-fast: false
@@ -84,19 +77,70 @@ jobs:
         id: restore-cache
         uses: ./cache-action
         with:
-          key: some-key-${{ matrix.os }}
+          key: benchmark-this-action-${{ matrix.os }}
           version: ${{ github.run_id }}
-          files: |
-            a-file another-file
-            a-dir/a-file
+          files: opencv
 
       - name: Check Output
         shell: bash
         run: test "${{ steps.restore-cache.outputs.restored }}" == "true"
 
-      - name: Check Files
+      - name: Check Sample
         shell: bash
-        run: |
-          test "$(cat a-file)" == "a content"
-          test "$(cat another-file)" == "another content"
-          test "$(cat a-dir/a-file)" == "a content"
+        run: git -C opencv status
+
+  test-cache-action-save-file:
+    name: Test Cache Action to Save File
+    runs-on: ${{ matrix.os }}-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows, ubuntu, macos]
+    steps:
+      - name: Clone Sample
+        shell: bash
+        run: git clone https://github.com/opencv/opencv.git
+
+      - name: Save Cache
+        id: save-cache
+        uses: actions/cache@v4.0.2
+        with:
+          key: benchmark-cache-action-${{ matrix.os }}-${{ github.run_id }}
+          path: opencv
+
+      - name: Check Output
+        shell: bash
+        run: test "${{ steps.save-cache.outputs.cache-hit }}" == ""
+
+  test-cache-action-restore-file:
+    name: Test Cache Action to Restore File
+    needs: test-cache-action-save-file
+    runs-on: ${{ matrix.os }}-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows, ubuntu, macos]
+    steps:
+      - name: Checkout Action
+        uses: actions/checkout@v4.1.7
+        with:
+          path: cache-action
+          sparse-checkout: |
+            action.yml
+            dist
+          sparse-checkout-cone-mode: false
+
+      - name: Restore Cache
+        id: restore-cache
+        uses: actions/cache@v4.0.2
+        with:
+          key: benchmark-cache-action-${{ matrix.os }}-${{ github.run_id }}
+          path: opencv
+
+      - name: Check Output
+        shell: bash
+        run: test "${{ steps.restore-cache.outputs.cache-hit }}" == "true"
+
+      - name: Check Sample
+        shell: bash
+        run: git -C opencv status

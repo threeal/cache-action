@@ -28,7 +28,7 @@ export async function restoreCache(
   if (cache === null) return false;
 
   const tempDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "temp-"));
-  const archivePath = path.join(tempDir, "cache.tar");
+  const archivePath = path.join(tempDir, "cache.tar.zst");
 
   await downloadFile(cache.archiveLocation, archivePath);
   await extractFiles(archivePath);
@@ -52,7 +52,7 @@ export async function saveCache(
   filePaths: string[],
 ): Promise<boolean> {
   const tempDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "temp-"));
-  const archivePath = path.join(tempDir, "cache.tar");
+  const archivePath = path.join(tempDir, "cache.tar.zst");
 
   await compressFiles(archivePath, filePaths);
   const archiveStat = await fsPromises.stat(archivePath);

@@ -59,13 +59,13 @@ export async function saveCache(
 
   const cacheId = await reserveCache(key, version, archiveStat.size);
   if (cacheId === null) {
-    fsPromises.rm(tempDir, { recursive: true });
+    await fsPromises.rm(tempDir, { recursive: true });
     return false;
   }
 
   await uploadCache(cacheId, archivePath, archiveStat.size);
   await commitCache(cacheId, archiveStat.size);
 
-  fsPromises.rm(tempDir, { recursive: true });
+  await fsPromises.rm(tempDir, { recursive: true });
   return true;
 }

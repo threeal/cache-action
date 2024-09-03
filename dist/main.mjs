@@ -147,13 +147,19 @@ async function downloadFile(url, savePath) {
 
 const execFilePromise = promisify(execFile);
 /**
- * Extracts files from an archive using Tar.
+ * Extracts files from an archive using Tar and Zstandard.
  *
  * @param archivePath - The path to the archive.
  * @returns A promise that resolves when the files have been successfully extracted.
  */
 async function extractFiles(archivePath) {
-    await execFilePromise("tar", ["-xf", archivePath, "-P"]);
+    await execFilePromise("tar", [
+        "--use-compress-program",
+        "zstd -d -T0",
+        "-xf",
+        archivePath,
+        "-P",
+    ]);
 }
 
 /**
@@ -169,7 +175,7 @@ async function restoreCache(key, version) {
     if (cache === null)
         return false;
     const tempDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "temp-"));
-    const archivePath = path.join(tempDir, "cache.tar");
+    const archivePath = path.join(tempDir, "cache.tar.zst");
     await downloadFile(cache.archiveLocation, archivePath);
     await extractFiles(archivePath);
     await fsPromises.rm(tempDir, { recursive: true });

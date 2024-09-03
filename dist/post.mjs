@@ -199,14 +199,21 @@ async function commitCache(id, size) {
 
 const execFilePromise = promisify(execFile);
 /**
- * Compresses files into an archive using Tar.
+ * Compresses files into an archive using Tar and Zstandard.
  *
  * @param archivePath - The output path for the archive.
  * @param filePaths - The paths of the files to be compressed.
  * @returns A promise that resolves when the files have been successfully compressed.
  */
 async function compressFiles(archivePath, filePaths) {
-    await execFilePromise("tar", ["-cf", archivePath, "-P", ...filePaths]);
+    await execFilePromise("tar", [
+        "--use-compress-program",
+        "zstd -T0",
+        "-cf",
+        archivePath,
+        "-P",
+        ...filePaths,
+    ]);
 }
 
 /**
@@ -220,7 +227,7 @@ async function compressFiles(archivePath, filePaths) {
  */
 async function saveCache(key, version, filePaths) {
     const tempDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "temp-"));
-    const archivePath = path.join(tempDir, "cache.tar");
+    const archivePath = path.join(tempDir, "cache.tar.zst");
     await compressFiles(archivePath, filePaths);
     const archiveStat = await fsPromises.stat(archivePath);
     const cacheId = await reserveCache(key, version, archiveStat.size);

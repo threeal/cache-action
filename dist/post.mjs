@@ -163,7 +163,7 @@ async function reserveCache(key, version, size) {
  */
 async function uploadCache(id, filePath, fileSize, options) {
     const { maxChunkSize } = {
-        maxChunkSize: 32 * 1024 * 1024,
+        maxChunkSize: 4 * 1024 * 1024,
         ...options,
     };
     const proms = [];

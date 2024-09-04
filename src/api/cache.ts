@@ -96,7 +96,7 @@ export async function uploadCache(
   options?: { maxChunkSize?: number },
 ): Promise<void> {
   const { maxChunkSize } = {
-    maxChunkSize: 32 * 1024 * 1024,
+    maxChunkSize: 4 * 1024 * 1024,
     ...options,
   };
 

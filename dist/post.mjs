@@ -4,8 +4,7 @@ import path from 'node:path';
 import fsPromises from 'node:fs/promises';
 import https from 'node:https';
 import 'node:stream/promises';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+import { spawn } from 'node:child_process';
 
 /**
  * Retrieves the value of a GitHub Actions input.
@@ -197,23 +196,44 @@ async function commitCache(id, size) {
     await handleResponse(res);
 }
 
-const execFilePromise = promisify(execFile);
+/**
+ * Handles a child process asynchronously.
+ *
+ * @param proc - The child process to handle.
+ * @returns A promise that resolves when the child process exits successfully,
+ * or rejects if the process fails.
+ */
+async function handleProcess(proc) {
+    return new Promise((resolve, reject) => {
+        const chunks = [];
+        proc.stderr?.on("data", (chunk) => chunks.push(chunk));
+        proc.on("error", reject);
+        proc.on("close", (code) => {
+            if (code === 0) {
+                resolve(undefined);
+            }
+            else {
+                reject(new Error([
+                    `Process failed: ${proc.spawnargs.join(" ")}`,
+                    Buffer.concat(chunks).toString(),
+                ].join("\n")));
+            }
+        });
+    });
+}
 /**
  * Compresses files into an archive using Tar and Zstandard.
  *
- * @param archivePath - The output path for the archive.
+ * @param archivePath - The output path for the compressed archive.
  * @param filePaths - The paths of the files to be compressed.
- * @returns A promise that resolves when the files have been successfully compressed.
+ * @returns A promise that resolves when the files have been successfully
+ * compressed and the archive is created.
  */
 async function compressFiles(archivePath, filePaths) {
-    await execFilePromise("tar", [
-        "--use-compress-program",
-        "zstd -T0",
-        "-cf",
-        archivePath,
-        "-P",
-        ...filePaths,
-    ]);
+    const tar = spawn("tar", ["-cf", "-", "-P", ...filePaths]);
+    const zstd = spawn("zstd", ["-T0", "-o", archivePath]);
+    tar.stdout.pipe(zstd.stdin);
+    await Promise.all([handleProcess(tar), handleProcess(zstd)]);
 }
 
 /**

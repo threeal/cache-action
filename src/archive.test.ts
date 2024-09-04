@@ -1,7 +1,20 @@
+import { spawn } from "node:child_process";
 import fsPromises from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { compressFiles, extractFiles } from "./archive.js";
+import { compressFiles, extractFiles, handleProcess } from "./archive.js";
+
+describe("handle processes", () => {
+  it("should handle a successful process", async () => {
+    const proc = spawn("node", ["--version"]);
+    await handleProcess(proc);
+  });
+
+  it("should handle a failing process", async () => {
+    const proc = spawn("node", ["--invalid"]);
+    await expect(handleProcess(proc)).rejects.toThrow(/bad option: --invalid/);
+  });
+});
 
 describe("compress and extract files", () => {
   let tempPath = "";

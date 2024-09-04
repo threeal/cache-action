@@ -4,8 +4,7 @@ import path from 'node:path';
 import fsPromises from 'node:fs/promises';
 import https from 'node:https';
 import streamPromises from 'node:stream/promises';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+import { spawn } from 'node:child_process';
 
 /**
  * Retrieves the value of a GitHub Actions input.
@@ -145,21 +144,42 @@ async function downloadFile(url, savePath) {
     await streamPromises.pipeline(res, file);
 }
 
-const execFilePromise = promisify(execFile);
+/**
+ * Handles a child process asynchronously.
+ *
+ * @param proc - The child process to handle.
+ * @returns A promise that resolves when the child process exits successfully,
+ * or rejects if the process fails.
+ */
+async function handleProcess(proc) {
+    return new Promise((resolve, reject) => {
+        const chunks = [];
+        proc.stderr?.on("data", (chunk) => chunks.push(chunk));
+        proc.on("error", reject);
+        proc.on("close", (code) => {
+            if (code === 0) {
+                resolve(undefined);
+            }
+            else {
+                reject(new Error([
+                    `Process failed: ${proc.spawnargs.join(" ")}`,
+                    Buffer.concat(chunks).toString(),
+                ].join("\n")));
+            }
+        });
+    });
+}
 /**
  * Extracts files from an archive using Tar and Zstandard.
  *
- * @param archivePath - The path to the archive.
+ * @param archivePath - The path to the compressed archive to be extracted.
  * @returns A promise that resolves when the files have been successfully extracted.
  */
 async function extractFiles(archivePath) {
-    await execFilePromise("tar", [
-        "--use-compress-program",
-        "zstd -d -T0",
-        "-xf",
-        archivePath,
-        "-P",
-    ]);
+    const zstd = spawn("zstd", ["-d", "-T0", "-c", archivePath]);
+    const tar = spawn("tar", ["-xf", "-", "-P"]);
+    zstd.stdout.pipe(tar.stdin);
+    await Promise.all([handleProcess(zstd), handleProcess(tar)]);
 }
 
 /**

@@ -1,4 +1,4 @@
-import { ChildProcess, execFile } from "node:child_process";
+import { ChildProcess, execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 
 const execFilePromise = promisify(execFile);
@@ -36,22 +36,21 @@ export async function handleProcess(proc: ChildProcess): Promise<void> {
 /**
  * Compresses files into an archive using Tar and Zstandard.
  *
- * @param archivePath - The output path for the archive.
+ * @param archivePath - The output path for the compressed archive.
  * @param filePaths - The paths of the files to be compressed.
- * @returns A promise that resolves when the files have been successfully compressed.
+ * @returns A promise that resolves when the files have been successfully
+ * compressed and the archive is created.
  */
 export async function compressFiles(
   archivePath: string,
   filePaths: string[],
 ): Promise<void> {
-  await execFilePromise("tar", [
-    "--use-compress-program",
-    "zstd -T0",
-    "-cf",
-    archivePath,
-    "-P",
-    ...filePaths,
-  ]);
+  const tar = spawn("tar", ["-cf", "-", "-P", ...filePaths]);
+  const zstd = spawn("zstd", ["-T0", "-o", archivePath]);
+
+  tar.stdout.pipe(zstd.stdin);
+
+  await Promise.all([handleProcess(tar), handleProcess(zstd)]);
 }
 
 /**

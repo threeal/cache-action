@@ -163,22 +163,26 @@ async function reserveCache(key, version, size) {
  */
 async function uploadCache(id, filePath, fileSize, options) {
     const { maxChunkSize } = {
-        maxChunkSize: 32 * 1024 * 1024,
+        maxChunkSize: 4 * 1024 * 1024,
         ...options,
     };
+    const proms = [];
     for (let start = 0; start < fileSize; start += maxChunkSize) {
-        const end = Math.min(start + maxChunkSize - 1, fileSize);
-        const bin = fs.createReadStream(filePath, { start, end });
-        const req = createRequest(`caches/${id}`, { method: "PATCH" });
-        const res = await sendStreamRequest(req, bin, start, end);
-        switch (res.statusCode) {
-            case 204:
-                await handleResponse(res);
-                break;
-            default:
-                throw await handleErrorResponse(res);
-        }
+        proms.push((async () => {
+            const end = Math.min(start + maxChunkSize - 1, fileSize);
+            const bin = fs.createReadStream(filePath, { start, end });
+            const req = createRequest(`caches/${id}`, { method: "PATCH" });
+            const res = await sendStreamRequest(req, bin, start, end);
+            switch (res.statusCode) {
+                case 204:
+                    await handleResponse(res);
+                    break;
+                default:
+                    throw await handleErrorResponse(res);
+            }
+        })());
     }
+    await Promise.all(proms);
 }
 /**
  * Commits a cache with the specified ID.

@@ -75,13 +75,18 @@ class Readable {
 }
 
 class Response extends Readable {
-  statusCode: number | undefined;
+  statusCode: number;
+  headers: Record<string, string | undefined>;
 
   #onError?: (err: Error) => void;
 
-  constructor(statusCode?: number) {
+  constructor(
+    statusCode?: number,
+    headers?: Record<string, string | undefined>,
+  ) {
     super();
-    this.statusCode = statusCode;
+    this.statusCode = statusCode ?? 200;
+    this.headers = headers ?? {};
   }
 
   on(event: string, callback: any): void {
@@ -197,6 +202,35 @@ describe("send HTTPS requests containing binary streams", () => {
     req.error(new Error("an error"));
 
     await expect(prom).rejects.toThrow("an error");
+  });
+});
+
+describe("assert content type of HTTP responses", () => {
+  it("should assert the content type of an HTTP response", async () => {
+    const { assertResponseContentType } = await import("./https.js");
+
+    const res = new Response(200, { "content-type": "a-content-type" });
+    assertResponseContentType(res as any, "a-content-type");
+  });
+
+  it("should fail to assert the content type of HTTP responses", async () => {
+    const { assertResponseContentType } = await import("./https.js");
+
+    expect(() => {
+      const res = new Response(200, {
+        "content-type": "another-content-type",
+      });
+      assertResponseContentType(res as any, "a-content-type");
+    }).toThrow(
+      "expected content type of the response to be 'a-content-type', but instead got 'another-content-type'",
+    );
+
+    expect(() => {
+      const res = new Response();
+      assertResponseContentType(res as any, "a-content-type");
+    }).toThrow(
+      "expected content type of the response to be 'a-content-type', but instead got 'undefined'",
+    );
   });
 });
 

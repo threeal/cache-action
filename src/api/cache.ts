@@ -100,22 +100,29 @@ export async function uploadCache(
     ...options,
   };
 
+  const proms: Promise<void>[] = [];
   for (let start = 0; start < fileSize; start += maxChunkSize) {
-    const end = Math.min(start + maxChunkSize - 1, fileSize);
-    const bin = fs.createReadStream(filePath, { start, end });
+    proms.push(
+      (async () => {
+        const end = Math.min(start + maxChunkSize - 1, fileSize);
+        const bin = fs.createReadStream(filePath, { start, end });
 
-    const req = createRequest(`caches/${id}`, { method: "PATCH" });
-    const res = await sendStreamRequest(req, bin, start, end);
+        const req = createRequest(`caches/${id}`, { method: "PATCH" });
+        const res = await sendStreamRequest(req, bin, start, end);
 
-    switch (res.statusCode) {
-      case 204:
-        await handleResponse(res);
-        break;
+        switch (res.statusCode) {
+          case 204:
+            await handleResponse(res);
+            break;
 
-      default:
-        throw await handleErrorResponse(res);
-    }
+          default:
+            throw await handleErrorResponse(res);
+        }
+      })(),
+    );
   }
+
+  await Promise.all(proms);
 }
 
 /**

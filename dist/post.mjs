@@ -4,8 +4,7 @@ import path from 'node:path';
 import fsPromises from 'node:fs/promises';
 import https from 'node:https';
 import 'node:stream/promises';
-import { execFile, spawn } from 'node:child_process';
-import { promisify } from 'node:util';
+import { spawn } from 'node:child_process';
 
 /**
  * Retrieves the value of a GitHub Actions input.
@@ -197,7 +196,6 @@ async function commitCache(id, size) {
     await handleResponse(res);
 }
 
-promisify(execFile);
 /**
  * Handles a child process asynchronously.
  *

@@ -1,7 +1,4 @@
-import { ChildProcess, execFile, spawn } from "node:child_process";
-import { promisify } from "node:util";
-
-const execFilePromise = promisify(execFile);
+import { ChildProcess, spawn } from "node:child_process";
 
 /**
  * Handles a child process asynchronously.
@@ -56,15 +53,14 @@ export async function compressFiles(
 /**
  * Extracts files from an archive using Tar and Zstandard.
  *
- * @param archivePath - The path to the archive.
+ * @param archivePath - The path to the compressed archive to be extracted.
  * @returns A promise that resolves when the files have been successfully extracted.
  */
 export async function extractFiles(archivePath: string): Promise<void> {
-  await execFilePromise("tar", [
-    "--use-compress-program",
-    "zstd -d -T0",
-    "-xf",
-    archivePath,
-    "-P",
-  ]);
+  const zstd = spawn("zstd", ["-d", "-T0", "-c", archivePath]);
+  const tar = spawn("tar", ["-xf", "-", "-P"]);
+
+  zstd.stdout.pipe(tar.stdin);
+
+  await Promise.all([handleProcess(zstd), handleProcess(tar)]);
 }

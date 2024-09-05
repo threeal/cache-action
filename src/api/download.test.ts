@@ -1,5 +1,10 @@
 import { jest } from "@jest/globals";
 
+interface Response {
+  headers: Record<string, string | undefined>;
+  data: () => string;
+}
+
 let clouds: Partial<Record<string, string>> = {};
 let files: Partial<Record<string, string>> = {};
 
@@ -20,14 +25,20 @@ jest.unstable_mockModule("node:https", () => ({
 jest.unstable_mockModule("node:stream/promises", () => ({
   default: {
     pipeline: async (
-      source: () => string,
+      source: Response,
       destination: (content: string) => void,
-    ) => destination(source()),
+    ) => destination(source.data()),
   },
 }));
 
 jest.unstable_mockModule("./https.js", () => ({
-  sendRequest: async (req: () => string) => () => clouds[req()],
+  assertResponseContentType: (res: Response, expectedType: string) => {
+    expect(res.headers["content-type"]).toContain(expectedType);
+  },
+  sendRequest: async (req: () => string) => ({
+    headers: { "content-type": "application/octet-stream" },
+    data: () => clouds[req()],
+  }),
 }));
 
 describe("download files", () => {

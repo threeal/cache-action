@@ -154,6 +154,7 @@ async function getCache(key, version) {
 async function downloadFile(url, savePath) {
     const req = https.request(url);
     const res = await sendRequest(req);
+    assertResponseContentType(res, "application/octet-stream");
     const file = fs.createWriteStream(savePath);
     await streamPromises.pipeline(res, file);
 }

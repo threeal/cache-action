@@ -135,6 +135,7 @@ export async function handleResponse(
 export async function handleJsonResponse<T>(
   res: http.IncomingMessage,
 ): Promise<T> {
+  assertResponseContentType(res, "application/json");
   const data = await handleResponse(res);
   return JSON.parse(data);
 }

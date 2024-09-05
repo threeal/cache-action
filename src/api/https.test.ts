@@ -274,13 +274,25 @@ describe("handle HTTPS responses containing JSON data", () => {
 });
 
 describe("handle HTTPS responses containing error data", () => {
-  it("should handle an HTTPS response", async () => {
+  it("should handle an HTTPS response containing error data in JSON", async () => {
     const { handleErrorResponse } = await import("./https.js");
 
     const res = new Response(500, { "content-type": "application/json" });
     const prom = handleErrorResponse(res as any);
 
     res.write(JSON.stringify({ message: "an error" }));
+    res.end();
+
+    await expect(prom).resolves.toEqual(new Error("an error (500)"));
+  });
+
+  it("should handle an HTTPS response containing error data in string", async () => {
+    const { handleErrorResponse } = await import("./https.js");
+
+    const res = new Response(500);
+    const prom = handleErrorResponse(res as any);
+
+    res.write("an error");
     res.end();
 
     await expect(prom).resolves.toEqual(new Error("an error (500)"));

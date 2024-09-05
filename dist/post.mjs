@@ -135,11 +135,17 @@ async function handleJsonResponse(res) {
  * Handles an HTTPS response containing error data.
  *
  * @param res - The HTTPS response object.
- * @returns A promise that resolves to an error object.
+ * @returns A promise that resolves to an `Error` object.
  */
 async function handleErrorResponse(res) {
-    const { message } = await handleJsonResponse(res);
-    return new Error(`${message} (${res.statusCode})`);
+    const data = await handleResponse(res);
+    if (res.headers["content-type"]?.includes("application/json")) {
+        const { message } = JSON.parse(data);
+        return new Error(`${message} (${res.statusCode})`);
+    }
+    else {
+        return new Error(`${data} (${res.statusCode})`);
+    }
 }
 
 /**

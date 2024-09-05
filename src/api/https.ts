@@ -90,6 +90,25 @@ export async function sendStreamRequest(
 }
 
 /**
+ * Asserts whether the content type of the given HTTP response matches the expected type.
+ *
+ * @param res - The HTTP response.
+ * @param expectedType - The expected content type of the HTTP response.
+ * @throws {Error} Throws an error if the content type does not match the expected type.
+ */
+export function assertResponseContentType(
+  res: http.IncomingMessage,
+  expectedType: string,
+): void {
+  const actualType = res.headers["content-type"] ?? "undefined";
+  if (!actualType.includes(expectedType)) {
+    throw new Error(
+      `expected content type of the response to be '${expectedType}', but instead got '${actualType}'`,
+    );
+  }
+}
+
+/**
  * Handles an HTTPS response containing raw data.
  *
  * @param res - The HTTPS response object.
@@ -116,6 +135,7 @@ export async function handleResponse(
 export async function handleJsonResponse<T>(
   res: http.IncomingMessage,
 ): Promise<T> {
+  assertResponseContentType(res, "application/json");
   const data = await handleResponse(res);
   return JSON.parse(data);
 }

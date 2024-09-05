@@ -71,6 +71,19 @@ async function sendRequest(req, data) {
     });
 }
 /**
+ * Asserts whether the content type of the given HTTP response matches the expected type.
+ *
+ * @param res - The HTTP response.
+ * @param expectedType - The expected content type of the HTTP response.
+ * @throws {Error} Throws an error if the content type does not match the expected type.
+ */
+function assertResponseContentType(res, expectedType) {
+    const actualType = res.headers["content-type"] ?? "undefined";
+    if (!actualType.includes(expectedType)) {
+        throw new Error(`expected content type of the response to be '${expectedType}', but instead got '${actualType}'`);
+    }
+}
+/**
  * Handles an HTTPS response containing raw data.
  *
  * @param res - The HTTPS response object.
@@ -92,6 +105,7 @@ async function handleResponse(res) {
  * @returns A promise that resolves to the parsed JSON data of type T.
  */
 async function handleJsonResponse(res) {
+    assertResponseContentType(res, "application/json");
     const data = await handleResponse(res);
     return JSON.parse(data);
 }
@@ -140,6 +154,7 @@ async function getCache(key, version) {
 async function downloadFile(url, savePath) {
     const req = https.request(url);
     const res = await sendRequest(req);
+    assertResponseContentType(res, "application/octet-stream");
     const file = fs.createWriteStream(savePath);
     await streamPromises.pipeline(res, file);
 }

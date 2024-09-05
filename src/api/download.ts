@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import https from "node:https";
 import streamPromises from "node:stream/promises";
-import { sendRequest } from "./https.js";
+import { assertResponseContentType, sendRequest } from "./https.js";
 
 /**
  * Downloads a file from the specified URL and saves it to the provided path.
@@ -15,7 +15,9 @@ export async function downloadFile(
   savePath: string,
 ): Promise<void> {
   const req = https.request(url);
+
   const res = await sendRequest(req);
+  assertResponseContentType(res, "application/octet-stream");
 
   const file = fs.createWriteStream(savePath);
   await streamPromises.pipeline(res, file);

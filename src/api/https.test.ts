@@ -75,13 +75,18 @@ class Readable {
 }
 
 class Response extends Readable {
-  statusCode: number | undefined;
+  statusCode: number;
+  headers: Record<string, string | undefined>;
 
   #onError?: (err: Error) => void;
 
-  constructor(statusCode?: number) {
+  constructor(
+    statusCode?: number,
+    headers?: Record<string, string | undefined>,
+  ) {
     super();
-    this.statusCode = statusCode;
+    this.statusCode = statusCode ?? 200;
+    this.headers = headers ?? {};
   }
 
   on(event: string, callback: any): void {
@@ -200,6 +205,35 @@ describe("send HTTPS requests containing binary streams", () => {
   });
 });
 
+describe("assert content type of HTTP responses", () => {
+  it("should assert the content type of an HTTP response", async () => {
+    const { assertResponseContentType } = await import("./https.js");
+
+    const res = new Response(200, { "content-type": "a-content-type" });
+    assertResponseContentType(res as any, "a-content-type");
+  });
+
+  it("should fail to assert the content type of HTTP responses", async () => {
+    const { assertResponseContentType } = await import("./https.js");
+
+    expect(() => {
+      const res = new Response(200, {
+        "content-type": "another-content-type",
+      });
+      assertResponseContentType(res as any, "a-content-type");
+    }).toThrow(
+      "expected content type of the response to be 'a-content-type', but instead got 'another-content-type'",
+    );
+
+    expect(() => {
+      const res = new Response();
+      assertResponseContentType(res as any, "a-content-type");
+    }).toThrow(
+      "expected content type of the response to be 'a-content-type', but instead got 'undefined'",
+    );
+  });
+});
+
 describe("handle HTTPS responses containing raw data", () => {
   it("should handle an HTTPS response", async () => {
     const { handleResponse } = await import("./https.js");
@@ -229,7 +263,7 @@ describe("handle HTTPS responses containing JSON data", () => {
   it("should handle an HTTPS response", async () => {
     const { handleJsonResponse } = await import("./https.js");
 
-    const res = new Response();
+    const res = new Response(200, { "content-type": "application/json" });
     const prom = handleJsonResponse(res as any);
 
     res.write(JSON.stringify({ message: "a message" }));
@@ -243,7 +277,7 @@ describe("handle HTTPS responses containing error data", () => {
   it("should handle an HTTPS response", async () => {
     const { handleErrorResponse } = await import("./https.js");
 
-    const res = new Response(500);
+    const res = new Response(500, { "content-type": "application/json" });
     const prom = handleErrorResponse(res as any);
 
     res.write(JSON.stringify({ message: "an error" }));

@@ -2,6 +2,7 @@ import { jest } from "@jest/globals";
 
 interface Response {
   headers: Record<string, string | undefined>;
+  statusCode: number;
   data: () => string;
 }
 
@@ -35,10 +36,17 @@ jest.unstable_mockModule("./https.js", () => ({
   assertResponseContentType: (res: Response, expectedType: string) => {
     expect(res.headers["content-type"]).toContain(expectedType);
   },
-  sendRequest: async (req: () => string) => ({
-    headers: { "content-type": "application/octet-stream" },
-    data: () => clouds[req()],
-  }),
+  handleErrorResponse: async (res: Response) => new Error(res.data()),
+  sendRequest: async (req: () => string): Promise<Response> => {
+    const data = clouds[req()];
+    return data !== undefined
+      ? {
+          statusCode: 200,
+          headers: { "content-type": "application/octet-stream" },
+          data: () => data,
+        }
+      : { statusCode: 404, headers: {}, data: () => "not found" };
+  },
 }));
 
 describe("download files", () => {
@@ -55,5 +63,12 @@ describe("download files", () => {
     await downloadFile("a-url", "a-file");
 
     expect(files).toEqual({ "a-file": "a content" });
+  });
+
+  it("should fail to download a file", async () => {
+    const { downloadFile } = await import("./download.js");
+
+    const prom = downloadFile("an-invalid-url", "a-file");
+    await expect(prom).rejects.toThrow("not found");
   });
 });

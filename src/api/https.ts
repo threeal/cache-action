@@ -149,11 +149,22 @@ export async function handleJsonResponse<T>(
 export async function handleErrorResponse(
   res: http.IncomingMessage,
 ): Promise<Error> {
-  const data = await handleResponse(res);
-  if (res.headers["content-type"]?.includes("application/json")) {
-    const { message } = JSON.parse(data) as { message: string };
-    return new Error(`${message} (${res.statusCode})`);
-  } else {
-    return new Error(`${data} (${res.statusCode})`);
+  let data = await handleResponse(res);
+
+  const contentType = res.headers["content-type"];
+  if (contentType !== undefined) {
+    if (contentType.includes("application/json")) {
+      const jsonData = JSON.parse(data);
+      if (typeof jsonData === "object" && "message" in jsonData) {
+        data = jsonData["message"];
+      }
+    } else if (contentType.includes("application/xml")) {
+      const matchData = data.match(/<Message>(.*?)<\/Message>/s);
+      if (matchData !== null && matchData.length > 1) {
+        data = matchData[1];
+      }
+    }
   }
+
+  return new Error(`${data} (${res.statusCode})`);
 }

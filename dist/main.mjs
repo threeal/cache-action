@@ -116,14 +116,23 @@ async function handleJsonResponse(res) {
  * @returns A promise that resolves to an `Error` object.
  */
 async function handleErrorResponse(res) {
-    const data = await handleResponse(res);
-    if (res.headers["content-type"]?.includes("application/json")) {
-        const { message } = JSON.parse(data);
-        return new Error(`${message} (${res.statusCode})`);
+    let data = await handleResponse(res);
+    const contentType = res.headers["content-type"];
+    if (contentType !== undefined) {
+        if (contentType.includes("application/json")) {
+            const jsonData = JSON.parse(data);
+            if (typeof jsonData === "object" && "message" in jsonData) {
+                data = jsonData["message"];
+            }
+        }
+        else if (contentType.includes("application/xml")) {
+            const matchData = data.match(/<Message>(.*?)<\/Message>/s);
+            if (matchData !== null && matchData.length > 1) {
+                data = matchData[1];
+            }
+        }
     }
-    else {
-        return new Error(`${data} (${res.statusCode})`);
-    }
+    return new Error(`${data} (${res.statusCode})`);
 }
 
 /**
@@ -153,16 +162,23 @@ async function getCache(key, version) {
 /**
  * Downloads a file from the specified URL and saves it to the provided path.
  *
- * @param url - The URL of the file to download.
+ * @param url - The URL of the file to be downloaded.
  * @param savePath - The path where the downloaded file will be saved.
  * @returns A promise that resolves when the download is complete.
  */
 async function downloadFile(url, savePath) {
     const req = https.request(url);
     const res = await sendRequest(req);
-    assertResponseContentType(res, "application/octet-stream");
-    const file = fs.createWriteStream(savePath);
-    await streamPromises.pipeline(res, file);
+    switch (res.statusCode) {
+        case 200: {
+            assertResponseContentType(res, "application/octet-stream");
+            const file = fs.createWriteStream(savePath);
+            await streamPromises.pipeline(res, file);
+            break;
+        }
+        default:
+            throw await handleErrorResponse(res);
+    }
 }
 
 /**

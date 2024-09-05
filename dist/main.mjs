@@ -153,16 +153,23 @@ async function getCache(key, version) {
 /**
  * Downloads a file from the specified URL and saves it to the provided path.
  *
- * @param url - The URL of the file to download.
+ * @param url - The URL of the file to be downloaded.
  * @param savePath - The path where the downloaded file will be saved.
  * @returns A promise that resolves when the download is complete.
  */
 async function downloadFile(url, savePath) {
     const req = https.request(url);
     const res = await sendRequest(req);
-    assertResponseContentType(res, "application/octet-stream");
-    const file = fs.createWriteStream(savePath);
-    await streamPromises.pipeline(res, file);
+    switch (res.statusCode) {
+        case 200: {
+            assertResponseContentType(res, "application/octet-stream");
+            const file = fs.createWriteStream(savePath);
+            await streamPromises.pipeline(res, file);
+            break;
+        }
+        default:
+            throw await handleErrorResponse(res);
+    }
 }
 
 /**

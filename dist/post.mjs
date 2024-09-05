@@ -138,14 +138,23 @@ async function handleJsonResponse(res) {
  * @returns A promise that resolves to an `Error` object.
  */
 async function handleErrorResponse(res) {
-    const data = await handleResponse(res);
-    if (res.headers["content-type"]?.includes("application/json")) {
-        const { message } = JSON.parse(data);
-        return new Error(`${message} (${res.statusCode})`);
+    let data = await handleResponse(res);
+    const contentType = res.headers["content-type"];
+    if (contentType !== undefined) {
+        if (contentType.includes("application/json")) {
+            const jsonData = JSON.parse(data);
+            if (typeof jsonData === "object" && "message" in jsonData) {
+                data = jsonData["message"];
+            }
+        }
+        else if (contentType.includes("application/xml")) {
+            const matchData = data.match(/<Message>(.*?)<\/Message>/s);
+            if (matchData !== null && matchData.length > 1) {
+                data = matchData[1];
+            }
+        }
     }
-    else {
-        return new Error(`${data} (${res.statusCode})`);
-    }
+    return new Error(`${data} (${res.statusCode})`);
 }
 
 /**

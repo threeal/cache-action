@@ -167,7 +167,7 @@ async function getCache(key, version) {
  * @returns A promise that resolves when the download is complete.
  */
 async function downloadFile(url, savePath) {
-    const req = https.request(url);
+    const req = https.request(url, { method: "GET" });
     const res = await sendRequest(req);
     switch (res.statusCode) {
         case 200: {

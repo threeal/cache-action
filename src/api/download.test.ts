@@ -1,8 +1,19 @@
 import { jest } from "@jest/globals";
 
-interface Request {
+class Request {
   url: string;
   method: string;
+  headers: Record<string, string | undefined>;
+
+  constructor(url: string, method: string) {
+    this.url = url;
+    this.method = method;
+    this.headers = {};
+  }
+
+  setHeader(key: string, value: string): void {
+    this.headers[key] = value;
+  }
 }
 
 interface Response {
@@ -11,7 +22,7 @@ interface Response {
   data: () => string;
 }
 
-let clouds: Partial<Record<string, string>> = {};
+let clouds: Partial<Record<string, any>> = {};
 let files: Partial<Record<string, string>> = {};
 beforeEach(() => {
   clouds = {};
@@ -28,7 +39,8 @@ jest.unstable_mockModule("node:fs", () => ({
 
 jest.unstable_mockModule("node:https", () => ({
   default: {
-    request: (url: string, { method }: any): Request => ({ url, method }),
+    request: (url: string, { method }: any): Request =>
+      new Request(url, method),
   },
 }));
 
@@ -53,22 +65,31 @@ jest.unstable_mockModule("./https.js", () => ({
       return { statusCode: 404, headers: {}, data: () => "not found" };
     }
 
-    if (req.method === "HEAD") {
-      return {
-        statusCode: 200,
-        headers: { "content-length": data.length.toString() },
-        data: () => "",
-      };
+    switch (req.method) {
+      case "HEAD":
+        return {
+          statusCode: 200,
+          headers: { "content-length": data.length.toString() },
+          data: () => "",
+        };
+
+      case "GET":
+        if (typeof data === "string") {
+          const range = req.headers["range"]?.match(/bytes=(.*)-(.*)/s);
+          const start = range != null ? parseInt(range[1]) : 0;
+          const end = range != null ? parseInt(range[2]) : 0;
+          return {
+            statusCode: 206,
+            headers: {
+              "content-type": "application/octet-stream",
+              "content-length": data.length.toString(),
+            },
+            data: () => data.substring(start, end),
+          };
+        }
     }
 
-    return {
-      statusCode: 200,
-      headers: {
-        "content-type": "application/octet-stream",
-        "content-length": data.length.toString(),
-      },
-      data: () => data,
-    };
+    return { statusCode: 500, headers: {}, data: () => "something went wrong" };
   },
 }));
 
@@ -101,10 +122,12 @@ describe("download files", () => {
     expect(files).toEqual({ "a-file": "a content" });
   });
 
-  it("should throw an error for an invalid URL", async () => {
+  it("should throw an error because of invalid content", async () => {
     const { downloadFile } = await import("./download.js");
 
-    const prom = downloadFile("an-invalid-url", "a-file");
-    await expect(prom).rejects.toThrow("not found");
+    clouds["a-url"] = { length: 8 };
+
+    const prom = downloadFile("a-url", "a-file");
+    await expect(prom).rejects.toThrow("something went wrong");
   });
 });

@@ -41,11 +41,15 @@ export async function downloadFile(
   url: string,
   savePath: string,
 ): Promise<void> {
+  const fileSize = await getDownloadFileSize(url);
+
   const req = https.request(url, { method: "GET" });
+  req.setHeader("range", `bytes=0-${fileSize}`);
+
   const res = await sendRequest(req);
 
   switch (res.statusCode) {
-    case 200: {
+    case 206: {
       assertResponseContentType(res, "application/octet-stream");
       const file = fs.createWriteStream(savePath);
       await streamPromises.pipeline(res, file);

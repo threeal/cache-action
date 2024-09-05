@@ -160,6 +160,24 @@ async function getCache(key, version) {
 }
 
 /**
+ * Retrieves the file size of a file to be downloaded from the specified URL.
+ *
+ * @param url - The URL of the file to be downloaded.
+ * @returns A promise that resolves to the size of the file to be downloaded, in bytes.
+ */
+async function getDownloadFileSize(url) {
+    const req = https.request(url, { method: "HEAD" });
+    const res = await sendRequest(req);
+    switch (res.statusCode) {
+        case 200: {
+            await handleResponse(res);
+            return Number.parseInt(res.headers["content-length"]);
+        }
+        default:
+            throw await handleErrorResponse(res);
+    }
+}
+/**
  * Downloads a file from the specified URL and saves it to the provided path.
  *
  * @param url - The URL of the file to be downloaded.
@@ -167,10 +185,12 @@ async function getCache(key, version) {
  * @returns A promise that resolves when the download is complete.
  */
 async function downloadFile(url, savePath) {
+    const fileSize = await getDownloadFileSize(url);
     const req = https.request(url, { method: "GET" });
+    req.setHeader("range", `bytes=0-${fileSize}`);
     const res = await sendRequest(req);
     switch (res.statusCode) {
-        case 200: {
+        case 206: {
             assertResponseContentType(res, "application/octet-stream");
             const file = fs.createWriteStream(savePath);
             await streamPromises.pipeline(res, file);

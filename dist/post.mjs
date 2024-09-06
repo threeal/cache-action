@@ -57,7 +57,7 @@ function createRequest(resourcePath, options) {
 async function sendRequest(req, data) {
     return new Promise((resolve, reject) => {
         req.on("response", (res) => resolve(res));
-        req.on("error", (err) => reject(err));
+        req.on("error", reject);
         if (data !== undefined)
             req.write(data);
         req.end();
@@ -88,7 +88,7 @@ async function sendStreamRequest(req, bin, start, end) {
         req.setHeader("Content-Type", "application/octet-stream");
         req.setHeader("Content-Range", `bytes ${start}-${end}/*`);
         req.on("response", (res) => resolve(res));
-        req.on("error", (err) => reject(err));
+        req.on("error", reject);
         bin.pipe(req);
     });
 }
@@ -116,7 +116,7 @@ async function handleResponse(res) {
         let data = "";
         res.on("data", (chunk) => (data += chunk.toString()));
         res.on("end", () => resolve(data));
-        res.on("error", (err) => reject(err));
+        res.on("error", reject);
     });
 }
 /**

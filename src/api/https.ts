@@ -41,7 +41,7 @@ export async function sendRequest(
 ): Promise<http.IncomingMessage> {
   return new Promise((resolve, reject) => {
     req.on("response", (res) => resolve(res));
-    req.on("error", (err) => reject(err));
+    req.on("error", reject);
 
     if (data !== undefined) req.write(data);
     req.end();
@@ -83,7 +83,7 @@ export async function sendStreamRequest(
     req.setHeader("Content-Range", `bytes ${start}-${end}/*`);
 
     req.on("response", (res) => resolve(res));
-    req.on("error", (err) => reject(err));
+    req.on("error", reject);
 
     bin.pipe(req);
   });
@@ -121,7 +121,7 @@ export async function handleResponse(
     let data = "";
     res.on("data", (chunk) => (data += chunk.toString()));
     res.on("end", () => resolve(data));
-    res.on("error", (err) => reject(err));
+    res.on("error", reject);
   });
 }
 

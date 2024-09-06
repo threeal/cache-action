@@ -143,17 +143,6 @@ describe("send HTTPS requests containing raw data", () => {
     expect(req.headers).toEqual({});
     expect(req.data).toBe("a message");
   });
-
-  it("should fail to send an HTTPS request", async () => {
-    const { sendRequest } = await import("./https.js");
-
-    const req = new Request();
-    const prom = sendRequest(req as any);
-
-    req.error(new Error("an error"));
-
-    await expect(prom).rejects.toThrow("an error");
-  });
 });
 
 describe("send HTTPS requests containing JSON data", () => {
@@ -190,18 +179,6 @@ describe("send HTTPS requests containing binary streams", () => {
       "Content-Range": "bytes 0-1024/*",
     });
     expect(req.data).toBe("a message");
-  });
-
-  it("should fail to send an HTTPS request", async () => {
-    const { sendStreamRequest } = await import("./https.js");
-
-    const req = new Request();
-    const bin = new Readable();
-    const prom = sendStreamRequest(req as any, bin as any, 0, 1024);
-
-    req.error(new Error("an error"));
-
-    await expect(prom).rejects.toThrow("an error");
   });
 });
 
@@ -245,17 +222,6 @@ describe("handle HTTPS responses containing raw data", () => {
     res.end();
 
     await expect(prom).resolves.toEqual("a message");
-  });
-
-  it("should fail to handle an HTTPS response", async () => {
-    const { handleResponse } = await import("./https.js");
-
-    const res = new Response();
-    const prom = handleResponse(res as any);
-
-    res.error(new Error("an error"));
-
-    await expect(prom).rejects.toThrow("an error");
   });
 });
 

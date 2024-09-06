@@ -1,4 +1,7 @@
 import { jest } from "@jest/globals";
+import http from "node:http";
+
+jest.unstable_mockModule("node:https", () => ({ default: http }));
 
 class Writable {
   #writtenData = "";
@@ -107,26 +110,23 @@ class Response extends Readable {
 
 describe("create HTTPS requests for the GitHub cache API endpoint", () => {
   it("should create an HTTPS request", async () => {
-    const https = { request: jest.fn() };
-    jest.unstable_mockModule("node:https", () => ({ default: https }));
-
     const { createRequest } = await import("./https.js");
 
-    process.env["ACTIONS_CACHE_URL"] = "a-url/";
+    process.env["ACTIONS_CACHE_URL"] = "http://localhost/";
     process.env["ACTIONS_RUNTIME_TOKEN"] = "a-token";
 
-    https.request.mockImplementation((url, options) => {
-      expect(url).toBe("a-url/_apis/artifactcache/resources");
-      expect(options).toBe("some options");
-      return new Request();
-    });
+    const req = createRequest("resources", { method: "GET" });
 
-    const req = createRequest("resources", "some options" as any) as any;
+    req.on("error", () => undefined);
+    req.end();
 
-    expect(req.headers).toEqual({
-      Accept: "application/json;api-version=6.0-preview",
-      Authorization: "Bearer a-token",
-    });
+    expect(req.protocol).toBe("http:");
+    expect(req.host).toBe("localhost");
+    expect(req.path).toBe("/_apis/artifactcache/resources");
+    expect(req.getHeader("accept")).toBe(
+      "application/json;api-version=6.0-preview",
+    );
+    expect(req.getHeader("authorization")).toBe("Bearer a-token");
   });
 });
 

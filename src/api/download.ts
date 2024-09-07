@@ -3,11 +3,11 @@ import https from "node:https";
 import streamPromises from "node:stream/promises";
 
 import {
-  assertResponseContentType,
-  handleErrorResponse,
-  handleResponse,
+  assertIncomingMessageContentType,
+  readErrorIncomingMessage,
+  readIncomingMessage,
   sendRequest,
-} from "./https.js";
+} from "./http.js";
 
 /**
  * Retrieves the file size of a file to be downloaded from the specified URL.
@@ -21,12 +21,12 @@ export async function getDownloadFileSize(url: string): Promise<number> {
 
   switch (res.statusCode) {
     case 200: {
-      await handleResponse(res);
+      await readIncomingMessage(res);
       return Number.parseInt(res.headers["content-length"] as string);
     }
 
     default:
-      throw await handleErrorResponse(res);
+      throw await readErrorIncomingMessage(res);
   }
 }
 
@@ -50,13 +50,13 @@ export async function downloadFile(
 
   switch (res.statusCode) {
     case 206: {
-      assertResponseContentType(res, "application/octet-stream");
+      assertIncomingMessageContentType(res, "application/octet-stream");
       const file = fs.createWriteStream(savePath);
       await streamPromises.pipeline(res, file);
       break;
     }
 
     default:
-      throw await handleErrorResponse(res);
+      throw await readErrorIncomingMessage(res);
   }
 }

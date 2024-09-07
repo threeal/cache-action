@@ -3,17 +3,9 @@ import fsPromises from "node:fs/promises";
 import http from "node:http";
 import os from "node:os";
 import path from "node:path";
+import { readIncomingMessage } from "./http.js";
 
 jest.unstable_mockModule("node:https", () => ({ default: http }));
-
-async function readRequest(req: http.IncomingMessage): Promise<Buffer> {
-  return new Promise<Buffer>((resolve, reject) => {
-    const chunks: Uint8Array[] = [];
-    req.on("data", (chunk) => chunks.push(chunk));
-    req.on("end", () => resolve(Buffer.concat(chunks)));
-    req.on("error", reject);
-  });
-}
 
 type ServerHandler = (
   req: http.IncomingMessage,
@@ -108,7 +100,7 @@ describe("reserve caches", () => {
       if (req.method !== "POST") return false;
       if (req.url !== "/_apis/artifactcache/caches") return false;
 
-      const buffer = await readRequest(req);
+      const buffer = await readIncomingMessage(req);
       const { key, version, cacheSize } = JSON.parse(buffer.toString());
       if (key !== "a-key" || version !== "a-version" || cacheSize !== 1024) {
         return false;
@@ -131,7 +123,7 @@ describe("reserve caches", () => {
       if (req.method !== "POST") return false;
       if (req.url !== "/_apis/artifactcache/caches") return false;
 
-      const buffer = await readRequest(req);
+      const buffer = await readIncomingMessage(req);
       const { key, version, cacheSize } = JSON.parse(buffer.toString());
       if (key !== "a-key" || version !== "a-version" || cacheSize !== 1024) {
         return false;
@@ -186,7 +178,7 @@ describe("upload files to caches", () => {
       const range = req.headers["content-range"]?.match(/bytes (.*)-(.*)\/\*/s);
       const start = range != null ? parseInt(range[1]) : 0;
 
-      const buffer = await readRequest(req);
+      const buffer = await readIncomingMessage(req);
       cacheBuffer.write(buffer.toString(), start);
 
       res.writeHead(204);
@@ -221,7 +213,7 @@ describe("commit caches", () => {
       if (req.method !== "POST") return false;
       if (req.url !== "/_apis/artifactcache/caches/9") return false;
 
-      const buffer = await readRequest(req);
+      const buffer = await readIncomingMessage(req);
       const { size } = JSON.parse(buffer.toString());
       if (size !== 1024) return false;
 

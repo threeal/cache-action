@@ -3,13 +3,13 @@ import type http from "node:http";
 import https from "node:https";
 
 import {
-  handleErrorResponse,
-  handleJsonResponse,
-  handleResponse,
+  readErrorIncomingMessage,
+  readIncomingMessage,
+  readJsonIncomingMessage,
   sendJsonRequest,
   sendRequest,
   sendStreamRequest,
-} from "./https.js";
+} from "./http.js";
 
 interface Cache {
   scope: string;
@@ -51,15 +51,15 @@ export async function getCache(
   const res = await sendRequest(req);
   switch (res.statusCode) {
     case 200:
-      return await handleJsonResponse<Cache>(res);
+      return await readJsonIncomingMessage<Cache>(res);
 
     // Cache not found, return null.
     case 204:
-      await handleResponse(res);
+      await readIncomingMessage(res);
       return null;
 
     default:
-      throw await handleErrorResponse(res);
+      throw await readErrorIncomingMessage(res);
   }
 }
 
@@ -82,17 +82,19 @@ export async function reserveCache(
 
   switch (res.statusCode) {
     case 201: {
-      const { cacheId } = await handleJsonResponse<{ cacheId: number }>(res);
+      const { cacheId } = await readJsonIncomingMessage<{ cacheId: number }>(
+        res,
+      );
       return cacheId;
     }
 
     // Cache already reserved, return null.
     case 409:
-      await handleResponse(res);
+      await readIncomingMessage(res);
       return null;
 
     default:
-      throw await handleErrorResponse(res);
+      throw await readErrorIncomingMessage(res);
   }
 }
 
@@ -127,11 +129,11 @@ export async function uploadCache(
 
         switch (res.statusCode) {
           case 204:
-            await handleResponse(res);
+            await readIncomingMessage(res);
             break;
 
           default:
-            throw await handleErrorResponse(res);
+            throw await readErrorIncomingMessage(res);
         }
       })(),
     );
@@ -151,7 +153,7 @@ export async function commitCache(id: number, size: number): Promise<void> {
   const req = createCacheRequest(`caches/${id}`, { method: "POST" });
   const res = await sendJsonRequest(req, { size });
   if (res.statusCode !== 204) {
-    throw await handleErrorResponse(res);
+    throw await readErrorIncomingMessage(res);
   }
-  await handleResponse(res);
+  await readIncomingMessage(res);
 }

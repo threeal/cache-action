@@ -77,8 +77,8 @@ describe("echo HTTP requests", () => {
     const res = await sendRequest(req, "a message");
     expect(res.statusCode).toBe(200);
 
-    const data = await handleResponse(res);
-    expect(data).toBe("a message");
+    const buffer = await handleResponse(res);
+    expect(buffer.toString()).toBe("a message");
   });
 
   it("should echo JSON data", async () => {
@@ -106,8 +106,8 @@ describe("echo HTTP requests", () => {
     expect(res.headers["content-type"]).toBe("application/octet-stream");
     expect(res.headers["content-range"]).toBe("bytes 16-32/*");
 
-    const data = await handleResponse(res);
-    expect(data).toBe("a message");
+    const buffer = await handleResponse(res);
+    expect(buffer.toString()).toBe("a message");
   });
 
   describe("echo error data", () => {

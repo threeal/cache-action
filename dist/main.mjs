@@ -84,16 +84,16 @@ function assertResponseContentType(res, expectedType) {
     }
 }
 /**
- * Handles an HTTPS response containing raw data.
+ * Handles an HTTPS response.
  *
  * @param res - The HTTPS response object.
- * @returns A promise that resolves to the raw data as a string.
+ * @returns A promise that resolves to the buffered data of the HTTPS response.
  */
 async function handleResponse(res) {
     return new Promise((resolve, reject) => {
-        let data = "";
-        res.on("data", (chunk) => (data += chunk.toString()));
-        res.on("end", () => resolve(data));
+        const chunks = [];
+        res.on("data", (chunk) => chunks.push(chunk));
+        res.on("end", () => resolve(Buffer.concat(chunks)));
         res.on("error", reject);
     });
 }
@@ -106,8 +106,8 @@ async function handleResponse(res) {
  */
 async function handleJsonResponse(res) {
     assertResponseContentType(res, "application/json");
-    const data = await handleResponse(res);
-    return JSON.parse(data);
+    const buffer = await handleResponse(res);
+    return JSON.parse(buffer.toString());
 }
 /**
  * Handles an HTTPS response containing error data.
@@ -116,23 +116,23 @@ async function handleJsonResponse(res) {
  * @returns A promise that resolves to an `Error` object.
  */
 async function handleErrorResponse(res) {
-    let data = await handleResponse(res);
+    const buffer = await handleResponse(res);
     const contentType = res.headers["content-type"];
     if (contentType !== undefined) {
         if (contentType.includes("application/json")) {
-            const jsonData = JSON.parse(data);
-            if (typeof jsonData === "object" && "message" in jsonData) {
-                data = jsonData["message"];
+            const data = JSON.parse(buffer.toString());
+            if (typeof data === "object" && "message" in data) {
+                return new Error(`${data["message"]} (${res.statusCode})`);
             }
         }
         else if (contentType.includes("application/xml")) {
-            const matchData = data.match(/<Message>(.*?)<\/Message>/s);
-            if (matchData !== null && matchData.length > 1) {
-                data = matchData[1];
+            const data = buffer.toString().match(/<Message>(.*?)<\/Message>/s);
+            if (data !== null && data.length > 1) {
+                return new Error(`${data[1]} (${res.statusCode})`);
             }
         }
     }
-    return new Error(`${data} (${res.statusCode})`);
+    return new Error(`${buffer.toString()} (${res.statusCode})`);
 }
 
 /**

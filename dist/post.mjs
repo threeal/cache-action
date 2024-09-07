@@ -80,68 +80,71 @@ async function sendStreamRequest(req, bin, start, end) {
     });
 }
 /**
- * Asserts whether the content type of the given HTTP response matches the expected type.
+ * Asserts whether the content type of the given HTTP incoming message matches
+ * the expected type.
  *
- * @param res - The HTTP response.
- * @param expectedType - The expected content type of the HTTP response.
- * @throws {Error} Throws an error if the content type does not match the expected type.
+ * @param msg - The HTTP incoming message.
+ * @param expectedType - The expected content type of the message.
+ * @throws {Error} Throws an error if the content type does not match the
+ * expected type.
  */
-function assertResponseContentType(res, expectedType) {
-    const actualType = res.headers["content-type"] ?? "undefined";
+function assertIncomingMessageContentType(msg, expectedType) {
+    const actualType = msg.headers["content-type"] ?? "undefined";
     if (!actualType.includes(expectedType)) {
-        throw new Error(`expected content type of the response to be '${expectedType}', but instead got '${actualType}'`);
+        throw new Error(`expected content type to be '${expectedType}', but instead got '${actualType}'`);
     }
 }
 /**
- * Handles an HTTP response.
+ * Reads the data from an HTTP incoming message.
  *
- * @param res - The HTTP response object.
- * @returns A promise that resolves to the buffered data of the HTTP response.
+ * @param msg - The HTTP incoming message.
+ * @returns A promise that resolves to the buffered data from the message.
  */
-async function handleResponse(res) {
+async function readIncomingMessage(msg) {
     return new Promise((resolve, reject) => {
         const chunks = [];
-        res.on("data", (chunk) => chunks.push(chunk));
-        res.on("end", () => resolve(Buffer.concat(chunks)));
-        res.on("error", reject);
+        msg.on("data", (chunk) => chunks.push(chunk));
+        msg.on("end", () => resolve(Buffer.concat(chunks)));
+        msg.on("error", reject);
     });
 }
 /**
- * Handles an HTTP response containing JSON data.
+ * Reads the JSON data from an HTTP incoming message.
  *
  * @typeParam T - The expected type of the parsed JSON data.
- * @param res - The HTTP response object.
- * @returns A promise that resolves to the parsed JSON data of type T.
+ * @param msg - The HTTP incoming message.
+ * @returns A promise that resolves to the parsed JSON data from the message.
  */
-async function handleJsonResponse(res) {
-    assertResponseContentType(res, "application/json");
-    const buffer = await handleResponse(res);
+async function readJsonIncomingMessage(msg) {
+    assertIncomingMessageContentType(msg, "application/json");
+    const buffer = await readIncomingMessage(msg);
     return JSON.parse(buffer.toString());
 }
 /**
- * Handles an HTTP response containing error data.
+ * Reads the error data from an HTTP incoming message.
  *
- * @param res - The HTTP response object.
- * @returns A promise that resolves to an `Error` object.
+ * @param msg - The HTTP incoming message.
+ * @returns A promise that resolves to an `Error` object based on the error
+ * data from the message.
  */
-async function handleErrorResponse(res) {
-    const buffer = await handleResponse(res);
-    const contentType = res.headers["content-type"];
+async function readErrorIncomingMessage(msg) {
+    const buffer = await readIncomingMessage(msg);
+    const contentType = msg.headers["content-type"];
     if (contentType !== undefined) {
         if (contentType.includes("application/json")) {
             const data = JSON.parse(buffer.toString());
             if (typeof data === "object" && "message" in data) {
-                return new Error(`${data["message"]} (${res.statusCode})`);
+                return new Error(`${data["message"]} (${msg.statusCode})`);
             }
         }
         else if (contentType.includes("application/xml")) {
             const data = buffer.toString().match(/<Message>(.*?)<\/Message>/s);
             if (data !== null && data.length > 1) {
-                return new Error(`${data[1]} (${res.statusCode})`);
+                return new Error(`${data[1]} (${msg.statusCode})`);
             }
         }
     }
-    return new Error(`${buffer.toString()} (${res.statusCode})`);
+    return new Error(`${buffer.toString()} (${msg.statusCode})`);
 }
 
 function createCacheRequest(resourcePath, options) {
@@ -166,15 +169,15 @@ async function reserveCache(key, version, size) {
     const res = await sendJsonRequest(req, { key, version, cacheSize: size });
     switch (res.statusCode) {
         case 201: {
-            const { cacheId } = await handleJsonResponse(res);
+            const { cacheId } = await readJsonIncomingMessage(res);
             return cacheId;
         }
         // Cache already reserved, return null.
         case 409:
-            await handleResponse(res);
+            await readIncomingMessage(res);
             return null;
         default:
-            throw await handleErrorResponse(res);
+            throw await readErrorIncomingMessage(res);
     }
 }
 /**
@@ -199,10 +202,10 @@ async function uploadCache(id, filePath, fileSize, options) {
             const res = await sendStreamRequest(req, bin, start, end);
             switch (res.statusCode) {
                 case 204:
-                    await handleResponse(res);
+                    await readIncomingMessage(res);
                     break;
                 default:
-                    throw await handleErrorResponse(res);
+                    throw await readErrorIncomingMessage(res);
             }
         })());
     }
@@ -219,9 +222,9 @@ async function commitCache(id, size) {
     const req = createCacheRequest(`caches/${id}`, { method: "POST" });
     const res = await sendJsonRequest(req, { size });
     if (res.statusCode !== 204) {
-        throw await handleErrorResponse(res);
+        throw await readErrorIncomingMessage(res);
     }
-    await handleResponse(res);
+    await readIncomingMessage(res);
 }
 
 /**

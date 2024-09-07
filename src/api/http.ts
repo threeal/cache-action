@@ -63,81 +63,84 @@ export async function sendStreamRequest(
 }
 
 /**
- * Asserts whether the content type of the given HTTP response matches the expected type.
+ * Asserts whether the content type of the given HTTP incoming message matches
+ * the expected type.
  *
- * @param res - The HTTP response.
- * @param expectedType - The expected content type of the HTTP response.
- * @throws {Error} Throws an error if the content type does not match the expected type.
+ * @param msg - The HTTP incoming message.
+ * @param expectedType - The expected content type of the message.
+ * @throws {Error} Throws an error if the content type does not match the
+ * expected type.
  */
-export function assertResponseContentType(
-  res: http.IncomingMessage,
+export function assertIncomingMessageContentType(
+  msg: http.IncomingMessage,
   expectedType: string,
 ): void {
-  const actualType = res.headers["content-type"] ?? "undefined";
+  const actualType = msg.headers["content-type"] ?? "undefined";
   if (!actualType.includes(expectedType)) {
     throw new Error(
-      `expected content type of the response to be '${expectedType}', but instead got '${actualType}'`,
+      `expected content type to be '${expectedType}', but instead got '${actualType}'`,
     );
   }
 }
 
 /**
- * Handles an HTTP response.
+ * Reads the data from an HTTP incoming message.
  *
- * @param res - The HTTP response object.
- * @returns A promise that resolves to the buffered data of the HTTP response.
+ * @param msg - The HTTP incoming message.
+ * @returns A promise that resolves to the buffered data from the message.
  */
-export async function handleResponse(
-  res: http.IncomingMessage,
+export async function readIncomingMessage(
+  msg: http.IncomingMessage,
 ): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const chunks: Uint8Array[] = [];
-    res.on("data", (chunk) => chunks.push(chunk));
-    res.on("end", () => resolve(Buffer.concat(chunks)));
-    res.on("error", reject);
+    msg.on("data", (chunk) => chunks.push(chunk));
+    msg.on("end", () => resolve(Buffer.concat(chunks)));
+    msg.on("error", reject);
   });
 }
 
 /**
- * Handles an HTTP response containing JSON data.
+ * Reads the JSON data from an HTTP incoming message.
  *
  * @typeParam T - The expected type of the parsed JSON data.
- * @param res - The HTTP response object.
- * @returns A promise that resolves to the parsed JSON data of type T.
+ * @param msg - The HTTP incoming message.
+ * @returns A promise that resolves to the parsed JSON data from the message.
  */
-export async function handleJsonResponse<T>(
-  res: http.IncomingMessage,
+export async function readJsonIncomingMessage<T>(
+  msg: http.IncomingMessage,
 ): Promise<T> {
-  assertResponseContentType(res, "application/json");
-  const buffer = await handleResponse(res);
+  assertIncomingMessageContentType(msg, "application/json");
+  const buffer = await readIncomingMessage(msg);
   return JSON.parse(buffer.toString());
 }
 
 /**
- * Handles an HTTP response containing error data.
+ * Reads the error data from an HTTP incoming message.
  *
- * @param res - The HTTP response object.
- * @returns A promise that resolves to an `Error` object.
+ * @param msg - The HTTP incoming message.
+ * @returns A promise that resolves to an `Error` object based on the error
+ * data from the message.
  */
-export async function handleErrorResponse(
-  res: http.IncomingMessage,
+export async function readErrorIncomingMessage(
+  msg: http.IncomingMessage,
 ): Promise<Error> {
-  const buffer = await handleResponse(res);
+  const buffer = await readIncomingMessage(msg);
 
-  const contentType = res.headers["content-type"];
+  const contentType = msg.headers["content-type"];
   if (contentType !== undefined) {
     if (contentType.includes("application/json")) {
       const data = JSON.parse(buffer.toString());
       if (typeof data === "object" && "message" in data) {
-        return new Error(`${data["message"]} (${res.statusCode})`);
+        return new Error(`${data["message"]} (${msg.statusCode})`);
       }
     } else if (contentType.includes("application/xml")) {
       const data = buffer.toString().match(/<Message>(.*?)<\/Message>/s);
       if (data !== null && data.length > 1) {
-        return new Error(`${data[1]} (${res.statusCode})`);
+        return new Error(`${data[1]} (${msg.statusCode})`);
       }
     }
   }
 
-  return new Error(`${buffer.toString()} (${res.statusCode})`);
+  return new Error(`${buffer.toString()} (${msg.statusCode})`);
 }

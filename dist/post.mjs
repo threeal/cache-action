@@ -35,19 +35,6 @@ function logError(err) {
 }
 
 /**
- * Creates an HTTPS request for the GitHub cache API endpoint.
- *
- * @param resourcePath - The path of the resource to be accessed in the API.
- * @param options - The options for the HTTPS request (e.g., method, headers).
- * @returns An HTTPS request object.
- */
-function createRequest(resourcePath, options) {
-    const req = https.request(`${process.env["ACTIONS_CACHE_URL"]}_apis/artifactcache/${resourcePath}`, options);
-    req.setHeader("Accept", "application/json;api-version=6.0-preview");
-    req.setHeader("Authorization", `Bearer ${process.env["ACTIONS_RUNTIME_TOKEN"]}`);
-    return req;
-}
-/**
  * Sends an HTTPS request containing raw data.
  *
  * @param req - The HTTPS request object.
@@ -157,6 +144,14 @@ async function handleErrorResponse(res) {
     return new Error(`${buffer.toString()} (${res.statusCode})`);
 }
 
+function createCacheRequest(resourcePath, options) {
+    const url = `${process.env["ACTIONS_CACHE_URL"]}_apis/artifactcache/${resourcePath}`;
+    const req = https.request(url, options);
+    req.setHeader("Accept", "application/json;api-version=6.0-preview");
+    const bearer = `Bearer ${process.env["ACTIONS_RUNTIME_TOKEN"]}`;
+    req.setHeader("Authorization", bearer);
+    return req;
+}
 /**
  * Reserves a cache with the specified key, version, and size.
  *
@@ -167,7 +162,7 @@ async function handleErrorResponse(res) {
  * cache is already reserved.
  */
 async function reserveCache(key, version, size) {
-    const req = createRequest("caches", { method: "POST" });
+    const req = createCacheRequest("caches", { method: "POST" });
     const res = await sendJsonRequest(req, { key, version, cacheSize: size });
     switch (res.statusCode) {
         case 201: {
@@ -200,7 +195,7 @@ async function uploadCache(id, filePath, fileSize, options) {
         proms.push((async () => {
             const end = Math.min(start + maxChunkSize - 1, fileSize);
             const bin = fs.createReadStream(filePath, { start, end });
-            const req = createRequest(`caches/${id}`, { method: "PATCH" });
+            const req = createCacheRequest(`caches/${id}`, { method: "PATCH" });
             const res = await sendStreamRequest(req, bin, start, end);
             switch (res.statusCode) {
                 case 204:
@@ -221,7 +216,7 @@ async function uploadCache(id, filePath, fileSize, options) {
  * @returns A promise that resolves with nothing.
  */
 async function commitCache(id, size) {
-    const req = createRequest(`caches/${id}`, { method: "POST" });
+    const req = createCacheRequest(`caches/${id}`, { method: "POST" });
     const res = await sendJsonRequest(req, { size });
     if (res.statusCode !== 204) {
         throw await handleErrorResponse(res);

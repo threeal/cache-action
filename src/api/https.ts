@@ -1,32 +1,5 @@
-import https from "node:https";
-
 import type http from "node:http";
 import type stream from "node:stream";
-
-/**
- * Creates an HTTPS request for the GitHub cache API endpoint.
- *
- * @param resourcePath - The path of the resource to be accessed in the API.
- * @param options - The options for the HTTPS request (e.g., method, headers).
- * @returns An HTTPS request object.
- */
-export function createRequest(
-  resourcePath: string,
-  options: https.RequestOptions,
-): http.ClientRequest {
-  const req = https.request(
-    `${process.env["ACTIONS_CACHE_URL"]}_apis/artifactcache/${resourcePath}`,
-    options,
-  );
-
-  req.setHeader("Accept", "application/json;api-version=6.0-preview");
-  req.setHeader(
-    "Authorization",
-    `Bearer ${process.env["ACTIONS_RUNTIME_TOKEN"]}`,
-  );
-
-  return req;
-}
 
 /**
  * Sends an HTTPS request containing raw data.

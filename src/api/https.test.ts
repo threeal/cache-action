@@ -1,184 +1,28 @@
 import { jest } from "@jest/globals";
+import http from "node:http";
+import stream from "node:stream";
 
-class Writable {
-  #writtenData = "";
-  data?: string;
-
-  write(chunk: any): void {
-    this.#writtenData += chunk;
-  }
-
-  end(): void {
-    this.data = this.#writtenData;
-  }
-}
-
-class Request extends Writable {
-  headers: Record<string, string> = {};
-
-  #onResponse?: (res: any) => void;
-  #onError?: (err: Error) => void;
-
-  setHeader(name: string, value: string): void {
-    this.headers[name] = value;
-  }
-
-  on(event: string, callback: any): void {
-    switch (event) {
-      case "response":
-        this.#onResponse = callback;
-        break;
-
-      case "error":
-        this.#onError = callback;
-        break;
-    }
-  }
-
-  response(res: any): void {
-    if (this.#onResponse !== undefined) this.#onResponse(res);
-  }
-
-  error(err: Error): void {
-    if (this.#onError !== undefined) this.#onError(err);
-  }
-}
-
-class Readable {
-  #onData?: (chunk: any) => void;
-  #onEnd?: () => void;
-
-  on(event: string, callback: any): void {
-    switch (event) {
-      case "data":
-        this.#onData = callback;
-        break;
-
-      case "end":
-        this.#onEnd = callback;
-        break;
-    }
-  }
-
-  write(chunk: any): void {
-    if (this.#onData !== undefined) this.#onData(chunk);
-  }
-
-  end(): void {
-    if (this.#onEnd !== undefined) this.#onEnd();
-  }
-
-  pipe(writable: Writable): void {
-    this.on("data", (chunk: any) => writable.write(chunk));
-    this.on("end", () => writable.end());
-  }
-}
-
-class Response extends Readable {
-  statusCode: number;
-  headers: Record<string, string | undefined>;
-
-  #onError?: (err: Error) => void;
-
-  constructor(
-    statusCode?: number,
-    headers?: Record<string, string | undefined>,
-  ) {
-    super();
-    this.statusCode = statusCode ?? 200;
-    this.headers = headers ?? {};
-  }
-
-  on(event: string, callback: any): void {
-    switch (event) {
-      case "error":
-        this.#onError = callback;
-        break;
-
-      default:
-        super.on(event, callback);
-    }
-  }
-
-  error(err: Error): void {
-    if (this.#onError !== undefined) this.#onError(err);
-  }
-}
+jest.unstable_mockModule("node:https", () => ({ default: http }));
 
 describe("create HTTPS requests for the GitHub cache API endpoint", () => {
   it("should create an HTTPS request", async () => {
-    const https = { request: jest.fn() };
-    jest.unstable_mockModule("node:https", () => ({ default: https }));
-
     const { createRequest } = await import("./https.js");
 
-    process.env["ACTIONS_CACHE_URL"] = "a-url/";
+    process.env["ACTIONS_CACHE_URL"] = "http://localhost/";
     process.env["ACTIONS_RUNTIME_TOKEN"] = "a-token";
 
-    https.request.mockImplementation((url, options) => {
-      expect(url).toBe("a-url/_apis/artifactcache/resources");
-      expect(options).toBe("some options");
-      return new Request();
-    });
+    const req = createRequest("resources", { method: "GET" });
 
-    const req = createRequest("resources", "some options" as any) as any;
+    req.on("error", () => undefined);
+    req.end();
 
-    expect(req.headers).toEqual({
-      Accept: "application/json;api-version=6.0-preview",
-      Authorization: "Bearer a-token",
-    });
-  });
-});
-
-describe("send HTTPS requests containing raw data", () => {
-  it("should send an HTTPS request", async () => {
-    const { sendRequest } = await import("./https.js");
-
-    const req = new Request();
-    const prom = sendRequest(req as any, "a message");
-
-    req.response("a response");
-
-    await expect(prom).resolves.toBe("a response");
-    expect(req.headers).toEqual({});
-    expect(req.data).toBe("a message");
-  });
-});
-
-describe("send HTTPS requests containing JSON data", () => {
-  it("should send an HTTPS request", async () => {
-    const { sendJsonRequest } = await import("./https.js");
-
-    const req = new Request();
-    const prom = sendJsonRequest(req as any, { message: "a message" });
-
-    req.response("a response");
-
-    await expect(prom).resolves.toBe("a response");
-    expect(req.headers).toEqual({ "Content-Type": "application/json" });
-    expect(req.data).toBe(JSON.stringify({ message: "a message" }));
-  });
-});
-
-describe("send HTTPS requests containing binary streams", () => {
-  it("should send an HTTPS request", async () => {
-    const { sendStreamRequest } = await import("./https.js");
-
-    const req = new Request();
-    const bin = new Readable();
-    const prom = sendStreamRequest(req as any, bin as any, 0, 1024);
-
-    bin.write("a message");
-    bin.end();
-
-    req.response("a response");
-
-    await expect(prom).resolves.toBe("a response");
-    expect(req.headers).toEqual({
-      "Content-Type": "application/octet-stream",
-      "Content-Range": "bytes 0-1024/*",
-    });
-    expect(req.data).toBe("a message");
+    expect(req.protocol).toBe("http:");
+    expect(req.host).toBe("localhost");
+    expect(req.path).toBe("/_apis/artifactcache/resources");
+    expect(req.getHeader("accept")).toBe(
+      "application/json;api-version=6.0-preview",
+    );
+    expect(req.getHeader("authorization")).toBe("Bearer a-token");
   });
 });
 
@@ -186,7 +30,7 @@ describe("assert content type of HTTP responses", () => {
   it("should assert the content type of an HTTP response", async () => {
     const { assertResponseContentType } = await import("./https.js");
 
-    const res = new Response(200, { "content-type": "a-content-type" });
+    const res = { headers: { "content-type": "a-content-type" } };
     assertResponseContentType(res as any, "a-content-type");
   });
 
@@ -194,16 +38,14 @@ describe("assert content type of HTTP responses", () => {
     const { assertResponseContentType } = await import("./https.js");
 
     expect(() => {
-      const res = new Response(200, {
-        "content-type": "another-content-type",
-      });
+      const res = { headers: { "content-type": "another-content-type" } };
       assertResponseContentType(res as any, "a-content-type");
     }).toThrow(
       "expected content type of the response to be 'a-content-type', but instead got 'another-content-type'",
     );
 
     expect(() => {
-      const res = new Response();
+      const res = { headers: {} };
       assertResponseContentType(res as any, "a-content-type");
     }).toThrow(
       "expected content type of the response to be 'a-content-type', but instead got 'undefined'",
@@ -211,68 +53,109 @@ describe("assert content type of HTTP responses", () => {
   });
 });
 
-describe("handle HTTPS responses containing raw data", () => {
-  it("should handle an HTTPS response", async () => {
-    const { handleResponse } = await import("./https.js");
-
-    const res = new Response();
-    const prom = handleResponse(res as any);
-
-    res.write("a message");
-    res.end();
-
-    await expect(prom).resolves.toEqual("a message");
-  });
-});
-
-describe("handle HTTPS responses containing JSON data", () => {
-  it("should handle an HTTPS response", async () => {
-    const { handleJsonResponse } = await import("./https.js");
-
-    const res = new Response(200, { "content-type": "application/json" });
-    const prom = handleJsonResponse(res as any);
-
-    res.write(JSON.stringify({ message: "a message" }));
-    res.end();
-
-    await expect(prom).resolves.toEqual({ message: "a message" });
-  });
-});
-
-describe("handle HTTPS responses containing error data", () => {
-  it("should handle an HTTPS response containing error data in JSON", async () => {
-    const { handleErrorResponse } = await import("./https.js");
-
-    const res = new Response(500, { "content-type": "application/json" });
-    const prom = handleErrorResponse(res as any);
-
-    res.write(JSON.stringify({ message: "an error" }));
-    res.end();
-
-    await expect(prom).resolves.toEqual(new Error("an error (500)"));
+describe("echo HTTP requests", () => {
+  const server = http.createServer((req, res) => {
+    if (req.method === "POST" && req.url === "/echo") {
+      res.writeHead(200, req.statusMessage, req.headers);
+      req.pipe(res);
+    } else if (req.method === "POST" && req.url === "/echo-error") {
+      res.writeHead(500, req.statusMessage, req.headers);
+      req.pipe(res);
+    } else {
+      res.writeHead(400);
+      res.end("bad request");
+    }
   });
 
-  it("should handle an HTTPS response containing error data in XML", async () => {
-    const { handleErrorResponse } = await import("./https.js");
+  beforeAll(() => server.listen(10001));
 
-    const res = new Response(500, { "content-type": "application/xml" });
-    const prom = handleErrorResponse(res as any);
+  it("should echo raw data", async () => {
+    const { handleResponse, sendRequest } = await import("./https.js");
 
-    res.write("<?xml><Message>an error</Message>");
-    res.end();
+    const req = http.request("http://localhost:10001/echo", { method: "POST" });
 
-    await expect(prom).resolves.toEqual(new Error("an error (500)"));
+    const res = await sendRequest(req, "a message");
+    expect(res.statusCode).toBe(200);
+
+    const data = await handleResponse(res);
+    expect(data).toBe("a message");
   });
 
-  it("should handle an HTTPS response containing error data in string", async () => {
-    const { handleErrorResponse } = await import("./https.js");
+  it("should echo JSON data", async () => {
+    const { handleJsonResponse, sendJsonRequest } = await import("./https.js");
 
-    const res = new Response(500);
-    const prom = handleErrorResponse(res as any);
+    const req = http.request("http://localhost:10001/echo", { method: "POST" });
 
-    res.write("an error");
-    res.end();
+    const res = await sendJsonRequest(req, { message: "a message" });
+    expect(res.statusCode).toBe(200);
 
-    await expect(prom).resolves.toEqual(new Error("an error (500)"));
+    const data = await handleJsonResponse(res);
+    expect(data).toEqual({
+      message: "a message",
+    });
   });
+
+  it("should echo a binary stream", async () => {
+    const { handleResponse, sendStreamRequest } = await import("./https.js");
+
+    const bin = stream.Readable.from("a message");
+    const req = http.request("http://localhost:10001/echo", { method: "POST" });
+
+    const res = await sendStreamRequest(req, bin, 16, 32);
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["content-type"]).toBe("application/octet-stream");
+    expect(res.headers["content-range"]).toBe("bytes 16-32/*");
+
+    const data = await handleResponse(res);
+    expect(data).toBe("a message");
+  });
+
+  describe("echo error data", () => {
+    it("should echo error data in JSON", async () => {
+      const { handleErrorResponse, sendJsonRequest } = await import(
+        "./https.js"
+      );
+
+      const req = http.request("http://localhost:10001/echo-error", {
+        method: "POST",
+      });
+
+      const res = await sendJsonRequest(req, { message: "an error" });
+      expect(res.statusCode).toBe(500);
+
+      const err = await handleErrorResponse(res);
+      expect(err).toEqual(new Error("an error (500)"));
+    });
+
+    it("should echo error data in XML", async () => {
+      const { handleErrorResponse, sendRequest } = await import("./https.js");
+
+      const req = http.request("http://localhost:10001/echo-error", {
+        method: "POST",
+      });
+      req.setHeader("content-type", "application/xml");
+
+      const res = await sendRequest(req, "<?xml><Message>an error</Message>");
+      expect(res.statusCode).toBe(500);
+
+      const err = await handleErrorResponse(res);
+      expect(err).toEqual(new Error("an error (500)"));
+    });
+
+    it("should echo error data in unknown type", async () => {
+      const { handleErrorResponse, sendRequest } = await import("./https.js");
+
+      const req = http.request("http://localhost:10001/echo-error", {
+        method: "POST",
+      });
+
+      const res = await sendRequest(req, "an error");
+      expect(res.statusCode).toBe(500);
+
+      const err = await handleErrorResponse(res);
+      expect(err).toEqual(new Error("an error (500)"));
+    });
+  });
+
+  afterAll(() => server.close());
 });

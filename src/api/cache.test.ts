@@ -1,87 +1,78 @@
 import { jest } from "@jest/globals";
+import fsPromises from "node:fs/promises";
+import http from "node:http";
+import os from "node:os";
+import path from "node:path";
 
-interface Response {
-  statusCode: number;
-  data: string;
+jest.unstable_mockModule("node:https", () => ({ default: http }));
+
+async function readRequest(req: http.IncomingMessage): Promise<Buffer> {
+  return new Promise<Buffer>((resolve, reject) => {
+    const chunks: Uint8Array[] = [];
+    req.on("data", (chunk) => chunks.push(chunk));
+    req.on("end", () => resolve(Buffer.concat(chunks)));
+    req.on("error", reject);
+  });
 }
 
-let files: Record<string, string | undefined> = {};
-let requestHandler: (
-  req: any,
-  data: string,
-  start: number,
-  end: number,
-) => Response;
+type ServerHandler = (
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+) => Promise<boolean>;
 
-beforeEach(() => {
-  files = {};
-  requestHandler = () => {
-    throw new Error("Unimplemented");
-  };
+let serverHandler: ServerHandler = async () => false;
+
+const server = http.createServer(async (req, res) => {
+  if (!(await serverHandler(req, res))) {
+    res.writeHead(400);
+    res.end("bad request");
+  }
 });
 
-jest.unstable_mockModule("node:fs", () => ({
-  default: {
-    createReadStream: (path: string, options: any) => {
-      const content = files[path];
-      if (content === undefined) throw new Error(`path ${path} does not exist`);
-      return () => content.substring(options.start, options.end + 1);
-    },
-  },
-}));
-
-jest.unstable_mockModule("./https.js", () => ({
-  createRequest: (resourcePath: string, options: object) => {
-    return { resourcePath, ...options };
-  },
-  handleErrorResponse: async (res: Response) => {
-    return new Error(res.data);
-  },
-  handleJsonResponse: async (res: Response) => {
-    return JSON.parse(res.data);
-  },
-  handleResponse: async (res: Response) => {
-    return res.data;
-  },
-  sendJsonRequest: async (req: any, data: any) => {
-    const jsonData = JSON.stringify(data);
-    return requestHandler(req, jsonData, 0, jsonData.length - 1);
-  },
-  sendRequest: async (req: any, data?: string) => {
-    if (data === undefined) data = "";
-    return requestHandler(req, data, 0, data.length - 1);
-  },
-  sendStreamRequest: async (
-    req: any,
-    bin: () => string,
-    start: number,
-    end: number,
-  ) => {
-    return requestHandler(req, bin(), start, end);
-  },
-}));
+beforeAll(() => {
+  server.listen(10003);
+  process.env["ACTIONS_CACHE_URL"] = "http://localhost:10003/";
+  process.env["ACTIONS_RUNTIME_TOKEN"] = "a-token";
+});
 
 describe("retrieve caches", () => {
   it("should retrieve a cache", async () => {
     const { getCache } = await import("./cache.js");
 
-    requestHandler = (req, data) => {
-      expect(req).toEqual({
-        resourcePath: "cache?keys=a-key&version=a-version",
-        method: "GET",
-      });
-      expect(data).toBe("");
-      return { statusCode: 200, data: JSON.stringify("a cache") };
+    serverHandler = async (req, res) => {
+      if (req.method !== "GET") return false;
+      if (
+        req.url !== "/_apis/artifactcache/cache?keys=a-key&version=a-version"
+      ) {
+        return false;
+      }
+
+      res.writeHead(200, undefined, { "content-type": "application/json" });
+      res.end(JSON.stringify({ cacheKey: "a-key", cacheVersion: "a-version" }));
+
+      return true;
     };
 
     const cache = await getCache("a-key", "a-version");
-    expect(cache).toBe("a cache");
+    expect(cache).toEqual({ cacheKey: "a-key", cacheVersion: "a-version" });
   });
 
   it("should not retrieve a non-existing cache", async () => {
     const { getCache } = await import("./cache.js");
 
-    requestHandler = () => ({ statusCode: 204, data: "" });
+    serverHandler = async (req, res) => {
+      if (req.method !== "GET") return false;
+      if (
+        req.url !== "/_apis/artifactcache/cache?keys=a-key&version=a-version"
+      ) {
+        return false;
+      }
+
+      res.writeHead(204);
+      res.end();
+
+      return true;
+    };
 
     const cache = await getCache("a-key", "a-version");
     expect(cache).toBeNull();
@@ -90,10 +81,10 @@ describe("retrieve caches", () => {
   it("should fail to retrieve a cache", async () => {
     const { getCache } = await import("./cache.js");
 
-    requestHandler = () => ({ statusCode: 500, data: "an error" });
+    serverHandler = async () => false;
 
     const prom = getCache("a-key", "a-version");
-    await expect(prom).rejects.toThrow("an error");
+    await expect(prom).rejects.toThrow("bad request (400)");
   });
 });
 
@@ -101,103 +92,144 @@ describe("reserve caches", () => {
   it("should reserve a cache", async () => {
     const { reserveCache } = await import("./cache.js");
 
-    requestHandler = (req, data) => {
-      expect(req).toEqual({
-        resourcePath: "caches",
-        method: "POST",
-      });
-      expect(JSON.parse(data)).toEqual({
-        key: "a-key",
-        version: "a-version",
-        cacheSize: 4,
-      });
-      return { statusCode: 201, data: JSON.stringify({ cacheId: 32 }) };
+    serverHandler = async (req, res) => {
+      if (req.method !== "POST") return false;
+      if (req.url !== "/_apis/artifactcache/caches") return false;
+
+      const buffer = await readRequest(req);
+      const { key, version, cacheSize } = JSON.parse(buffer.toString());
+      if (key !== "a-key" || version !== "a-version" || cacheSize !== 1024) {
+        return false;
+      }
+
+      res.writeHead(201, undefined, { "content-type": "application/json" });
+      res.end(JSON.stringify({ cacheId: 9 }));
+
+      return true;
     };
 
-    const cacheId = await reserveCache("a-key", "a-version", 4);
-    expect(cacheId).toBe(32);
+    const cacheId = await reserveCache("a-key", "a-version", 1024);
+    expect(cacheId).toBe(9);
   });
 
   it("should not reserve a reserved cache", async () => {
     const { reserveCache } = await import("./cache.js");
 
-    requestHandler = () => ({ statusCode: 409, data: "" });
+    serverHandler = async (req, res) => {
+      if (req.method !== "POST") return false;
+      if (req.url !== "/_apis/artifactcache/caches") return false;
 
-    const cacheId = await reserveCache("a-key", "a-version", 4);
+      const buffer = await readRequest(req);
+      const { key, version, cacheSize } = JSON.parse(buffer.toString());
+      if (key !== "a-key" || version !== "a-version" || cacheSize !== 1024) {
+        return false;
+      }
+
+      res.writeHead(409);
+      res.end();
+
+      return true;
+    };
+
+    const cacheId = await reserveCache("a-key", "a-version", 1024);
     expect(cacheId).toBeNull();
   });
 
   it("should fail to reserve a cache", async () => {
     const { reserveCache } = await import("./cache.js");
 
-    requestHandler = () => ({ statusCode: 500, data: "an error" });
+    serverHandler = async () => false;
 
-    const prom = reserveCache("a-key", "a-version", 4);
-    await expect(prom).rejects.toThrow("an error");
+    const prom = reserveCache("a-key", "a-version", 1024);
+    await expect(prom).rejects.toThrow("bad request (400)");
   });
 });
 
 describe("upload files to caches", () => {
+  let tempPath = "";
+  let filePath = "";
+  let fileSize = 0;
+
+  beforeAll(async () => {
+    tempPath = await fsPromises.mkdtemp(path.join(os.tmpdir(), "temp-"));
+    filePath = path.join(tempPath, "a-file");
+
+    await fsPromises.writeFile(
+      filePath,
+      "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+    );
+    fileSize = (await fsPromises.stat(filePath)).size;
+  });
+
   it("should upload a file to a cache", async () => {
     const { uploadCache } = await import("./cache.js");
 
-    files["a-file"] = "lorem ipsum dolor sit amet";
-    let uploadedData = "";
+    const cacheBuffer = Buffer.alloc(fileSize);
+    serverHandler = async (req, res) => {
+      if (req.method !== "PATCH") return false;
+      if (req.url !== "/_apis/artifactcache/caches/9") return false;
+      if (req.headers["content-type"] !== "application/octet-stream")
+        return false;
 
-    requestHandler = (req, data, start, end) => {
-      expect(req).toEqual({
-        resourcePath: "caches/32",
-        method: "PATCH",
-      });
+      const range = req.headers["content-range"]?.match(/bytes (.*)-(.*)\/\*/s);
+      const start = range != null ? parseInt(range[1]) : 0;
 
-      uploadedData =
-        uploadedData.substring(0, start) +
-        data +
-        uploadedData.substring(end + 1, uploadedData.length);
+      const buffer = await readRequest(req);
+      cacheBuffer.write(buffer.toString(), start);
 
-      return { statusCode: 204, data: "" };
+      res.writeHead(204);
+      res.end(0);
+
+      return true;
     };
 
-    await uploadCache(32, "a-file", files["a-file"].length, {
-      maxChunkSize: 8,
-    });
-    expect(uploadedData).toBe("lorem ipsum dolor sit amet");
+    await uploadCache(9, filePath, fileSize, { maxChunkSize: 8 });
+
+    const fileBuffer = await fsPromises.readFile(filePath);
+    expect(cacheBuffer.toString()).toBe(fileBuffer.toString());
   });
 
   it("should fail to upload a file to a cache", async () => {
     const { uploadCache } = await import("./cache.js");
 
-    files["a-file"] = "lorem ipsum dolor sit amet";
+    serverHandler = async () => false;
 
-    requestHandler = () => ({ statusCode: 500, data: "an error" });
-
-    const prom = uploadCache(32, "a-file", files["a-file"].length);
-    await expect(prom).rejects.toThrow("an error");
+    const prom = uploadCache(9, filePath, fileSize);
+    await expect(prom).rejects.toThrow("bad request (400)");
   });
+
+  afterAll(() => fsPromises.rm(tempPath, { recursive: true }));
 });
 
 describe("commit caches", () => {
   it("should commit a cache", async () => {
     const { commitCache } = await import("./cache.js");
 
-    requestHandler = (req, data) => {
-      expect(req).toEqual({
-        resourcePath: "caches/32",
-        method: "POST",
-      });
-      expect(JSON.parse(data)).toEqual({ size: 4 });
-      return { statusCode: 204, data: "" };
+    serverHandler = async (req, res) => {
+      if (req.method !== "POST") return false;
+      if (req.url !== "/_apis/artifactcache/caches/9") return false;
+
+      const buffer = await readRequest(req);
+      const { size } = JSON.parse(buffer.toString());
+      if (size !== 1024) return false;
+
+      res.writeHead(204);
+      res.end();
+
+      return true;
     };
 
-    await commitCache(32, 4);
+    await commitCache(9, 1024);
   });
 
   it("should fail to commit a cache", async () => {
     const { commitCache } = await import("./cache.js");
 
-    requestHandler = () => ({ statusCode: 500, data: "an error" });
+    serverHandler = async () => false;
 
-    const prom = commitCache(32, 4);
-    await expect(prom).rejects.toThrow("an error");
+    const prom = commitCache(9, 1024);
+    await expect(prom).rejects.toThrow("bad request (400)");
   });
 });
+
+afterAll(() => server.close());

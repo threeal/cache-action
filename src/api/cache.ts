@@ -1,7 +1,8 @@
 import fs from "node:fs";
+import type http from "node:http";
+import https from "node:https";
 
 import {
-  createRequest,
   handleErrorResponse,
   handleJsonResponse,
   handleResponse,
@@ -18,6 +19,21 @@ interface Cache {
   archiveLocation: string;
 }
 
+function createCacheRequest(
+  resourcePath: string,
+  options: https.RequestOptions,
+): http.ClientRequest {
+  const url = `${process.env["ACTIONS_CACHE_URL"]}_apis/artifactcache/${resourcePath}`;
+  const req = https.request(url, options);
+
+  req.setHeader("Accept", "application/json;api-version=6.0-preview");
+
+  const bearer = `Bearer ${process.env["ACTIONS_RUNTIME_TOKEN"]}`;
+  req.setHeader("Authorization", bearer);
+
+  return req;
+}
+
 /**
  * Retrieves cache information for the specified key and version.
  *
@@ -29,11 +45,10 @@ export async function getCache(
   key: string,
   version: string,
 ): Promise<Cache | null> {
-  const req = createRequest(`cache?keys=${key}&version=${version}`, {
-    method: "GET",
-  });
-  const res = await sendRequest(req);
+  const resourcePath = `cache?keys=${key}&version=${version}`;
+  const req = createCacheRequest(resourcePath, { method: "GET" });
 
+  const res = await sendRequest(req);
   switch (res.statusCode) {
     case 200:
       return await handleJsonResponse<Cache>(res);
@@ -62,7 +77,7 @@ export async function reserveCache(
   version: string,
   size: number,
 ): Promise<number | null> {
-  const req = createRequest("caches", { method: "POST" });
+  const req = createCacheRequest("caches", { method: "POST" });
   const res = await sendJsonRequest(req, { key, version, cacheSize: size });
 
   switch (res.statusCode) {
@@ -107,7 +122,7 @@ export async function uploadCache(
         const end = Math.min(start + maxChunkSize - 1, fileSize);
         const bin = fs.createReadStream(filePath, { start, end });
 
-        const req = createRequest(`caches/${id}`, { method: "PATCH" });
+        const req = createCacheRequest(`caches/${id}`, { method: "PATCH" });
         const res = await sendStreamRequest(req, bin, start, end);
 
         switch (res.statusCode) {
@@ -133,7 +148,7 @@ export async function uploadCache(
  * @returns A promise that resolves with nothing.
  */
 export async function commitCache(id: number, size: number): Promise<void> {
-  const req = createRequest(`caches/${id}`, { method: "POST" });
+  const req = createCacheRequest(`caches/${id}`, { method: "POST" });
   const res = await sendJsonRequest(req, { size });
   if (res.statusCode !== 204) {
     throw await handleErrorResponse(res);

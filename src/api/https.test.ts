@@ -1,30 +1,5 @@
-import { jest } from "@jest/globals";
 import http from "node:http";
 import stream from "node:stream";
-
-jest.unstable_mockModule("node:https", () => ({ default: http }));
-
-describe("create HTTPS requests for the GitHub cache API endpoint", () => {
-  it("should create an HTTPS request", async () => {
-    const { createRequest } = await import("./https.js");
-
-    process.env["ACTIONS_CACHE_URL"] = "http://localhost/";
-    process.env["ACTIONS_RUNTIME_TOKEN"] = "a-token";
-
-    const req = createRequest("resources", { method: "GET" });
-
-    req.on("error", () => undefined);
-    req.end();
-
-    expect(req.protocol).toBe("http:");
-    expect(req.host).toBe("localhost");
-    expect(req.path).toBe("/_apis/artifactcache/resources");
-    expect(req.getHeader("accept")).toBe(
-      "application/json;api-version=6.0-preview",
-    );
-    expect(req.getHeader("authorization")).toBe("Bearer a-token");
-  });
-});
 
 describe("assert content type of HTTP responses", () => {
   it("should assert the content type of an HTTP response", async () => {

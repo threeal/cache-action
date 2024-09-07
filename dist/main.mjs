@@ -44,19 +44,6 @@ function logError(err) {
 }
 
 /**
- * Creates an HTTPS request for the GitHub cache API endpoint.
- *
- * @param resourcePath - The path of the resource to be accessed in the API.
- * @param options - The options for the HTTPS request (e.g., method, headers).
- * @returns An HTTPS request object.
- */
-function createRequest(resourcePath, options) {
-    const req = https.request(`${process.env["ACTIONS_CACHE_URL"]}_apis/artifactcache/${resourcePath}`, options);
-    req.setHeader("Accept", "application/json;api-version=6.0-preview");
-    req.setHeader("Authorization", `Bearer ${process.env["ACTIONS_RUNTIME_TOKEN"]}`);
-    return req;
-}
-/**
  * Sends an HTTPS request containing raw data.
  *
  * @param req - The HTTPS request object.
@@ -135,6 +122,14 @@ async function handleErrorResponse(res) {
     return new Error(`${buffer.toString()} (${res.statusCode})`);
 }
 
+function createCacheRequest(resourcePath, options) {
+    const url = `${process.env["ACTIONS_CACHE_URL"]}_apis/artifactcache/${resourcePath}`;
+    const req = https.request(url, options);
+    req.setHeader("Accept", "application/json;api-version=6.0-preview");
+    const bearer = `Bearer ${process.env["ACTIONS_RUNTIME_TOKEN"]}`;
+    req.setHeader("Authorization", bearer);
+    return req;
+}
 /**
  * Retrieves cache information for the specified key and version.
  *
@@ -143,9 +138,8 @@ async function handleErrorResponse(res) {
  * @returns A promise that resolves with the cache information or null if not found.
  */
 async function getCache(key, version) {
-    const req = createRequest(`cache?keys=${key}&version=${version}`, {
-        method: "GET",
-    });
+    const resourcePath = `cache?keys=${key}&version=${version}`;
+    const req = createCacheRequest(resourcePath, { method: "GET" });
     const res = await sendRequest(req);
     switch (res.statusCode) {
         case 200:

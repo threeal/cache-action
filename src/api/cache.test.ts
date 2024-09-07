@@ -23,10 +23,22 @@ type ServerHandler = (
 let serverHandler: ServerHandler = async () => false;
 
 const server = http.createServer(async (req, res) => {
-  if (!(await serverHandler(req, res))) {
-    res.writeHead(400);
-    res.end("bad request");
+  if (req.headers["authorization"] != "Bearer a-token") {
+    res.writeHead(401);
+    res.end("unauthorized");
+    return;
   }
+
+  if (req.headers["accept"] != "application/json;api-version=6.0-preview") {
+    res.writeHead(415);
+    res.end("unsupported media type");
+    return;
+  }
+
+  if (await serverHandler(req, res)) return;
+
+  res.writeHead(400);
+  res.end("bad request");
 });
 
 beforeAll(() => {

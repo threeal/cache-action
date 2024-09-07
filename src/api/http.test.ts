@@ -3,14 +3,14 @@ import stream from "node:stream";
 
 describe("assert content type of HTTP responses", () => {
   it("should assert the content type of an HTTP response", async () => {
-    const { assertResponseContentType } = await import("./https.js");
+    const { assertResponseContentType } = await import("./http.js");
 
     const res = { headers: { "content-type": "a-content-type" } };
     assertResponseContentType(res as any, "a-content-type");
   });
 
   it("should fail to assert the content type of HTTP responses", async () => {
-    const { assertResponseContentType } = await import("./https.js");
+    const { assertResponseContentType } = await import("./http.js");
 
     expect(() => {
       const res = { headers: { "content-type": "another-content-type" } };
@@ -45,7 +45,7 @@ describe("echo HTTP requests", () => {
   beforeAll(() => server.listen(10001));
 
   it("should echo raw data", async () => {
-    const { handleResponse, sendRequest } = await import("./https.js");
+    const { handleResponse, sendRequest } = await import("./http.js");
 
     const req = http.request("http://localhost:10001/echo", { method: "POST" });
 
@@ -57,7 +57,7 @@ describe("echo HTTP requests", () => {
   });
 
   it("should echo JSON data", async () => {
-    const { handleJsonResponse, sendJsonRequest } = await import("./https.js");
+    const { handleJsonResponse, sendJsonRequest } = await import("./http.js");
 
     const req = http.request("http://localhost:10001/echo", { method: "POST" });
 
@@ -71,7 +71,7 @@ describe("echo HTTP requests", () => {
   });
 
   it("should echo a binary stream", async () => {
-    const { handleResponse, sendStreamRequest } = await import("./https.js");
+    const { handleResponse, sendStreamRequest } = await import("./http.js");
 
     const bin = stream.Readable.from("a message");
     const req = http.request("http://localhost:10001/echo", { method: "POST" });
@@ -88,7 +88,7 @@ describe("echo HTTP requests", () => {
   describe("echo error data", () => {
     it("should echo error data in JSON", async () => {
       const { handleErrorResponse, sendJsonRequest } = await import(
-        "./https.js"
+        "./http.js"
       );
 
       const req = http.request("http://localhost:10001/echo-error", {
@@ -103,7 +103,7 @@ describe("echo HTTP requests", () => {
     });
 
     it("should echo error data in XML", async () => {
-      const { handleErrorResponse, sendRequest } = await import("./https.js");
+      const { handleErrorResponse, sendRequest } = await import("./http.js");
 
       const req = http.request("http://localhost:10001/echo-error", {
         method: "POST",
@@ -118,7 +118,7 @@ describe("echo HTTP requests", () => {
     });
 
     it("should echo error data in unknown type", async () => {
-      const { handleErrorResponse, sendRequest } = await import("./https.js");
+      const { handleErrorResponse, sendRequest } = await import("./http.js");
 
       const req = http.request("http://localhost:10001/echo-error", {
         method: "POST",

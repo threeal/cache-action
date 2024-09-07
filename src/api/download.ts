@@ -7,7 +7,7 @@ import {
   handleErrorResponse,
   handleResponse,
   sendRequest,
-} from "./https.js";
+} from "./http.js";
 
 /**
  * Retrieves the file size of a file to be downloaded from the specified URL.

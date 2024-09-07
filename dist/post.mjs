@@ -35,11 +35,11 @@ function logError(err) {
 }
 
 /**
- * Sends an HTTPS request containing raw data.
+ * Sends an HTTP request containing raw data.
  *
- * @param req - The HTTPS request object.
+ * @param req - The HTTP request object.
  * @param data - The raw data to be sent in the request body.
- * @returns A promise that resolves to an HTTPS response object.
+ * @returns A promise that resolves to an HTTP response object.
  */
 async function sendRequest(req, data) {
     return new Promise((resolve, reject) => {
@@ -51,24 +51,24 @@ async function sendRequest(req, data) {
     });
 }
 /**
- * Sends an HTTPS request containing JSON data.
+ * Sends an HTTP request containing JSON data.
  *
- * @param req - The HTTPS request object.
+ * @param req - The HTTP request object.
  * @param data - The JSON data to be sent in the request body.
- * @returns A promise that resolves to an HTTPS response object.
+ * @returns A promise that resolves to an HTTP response object.
  */
 async function sendJsonRequest(req, data) {
     req.setHeader("Content-Type", "application/json");
     return sendRequest(req, JSON.stringify(data));
 }
 /**
- * Sends an HTTPS request containing a binary stream.
+ * Sends an HTTP request containing a binary stream.
  *
- * @param req - The HTTPS request object.
+ * @param req - The HTTP request object.
  * @param bin - The binary stream to be sent in the request body.
  * @param start - The starting byte of the binary stream.
  * @param end - The ending byte of the binary stream.
- * @returns A promise that resolves to an HTTPS response object.
+ * @returns A promise that resolves to an HTTP response object.
  */
 async function sendStreamRequest(req, bin, start, end) {
     return new Promise((resolve, reject) => {
@@ -93,10 +93,10 @@ function assertResponseContentType(res, expectedType) {
     }
 }
 /**
- * Handles an HTTPS response.
+ * Handles an HTTP response.
  *
- * @param res - The HTTPS response object.
- * @returns A promise that resolves to the buffered data of the HTTPS response.
+ * @param res - The HTTP response object.
+ * @returns A promise that resolves to the buffered data of the HTTP response.
  */
 async function handleResponse(res) {
     return new Promise((resolve, reject) => {
@@ -107,10 +107,10 @@ async function handleResponse(res) {
     });
 }
 /**
- * Handles an HTTPS response containing JSON data.
+ * Handles an HTTP response containing JSON data.
  *
  * @typeParam T - The expected type of the parsed JSON data.
- * @param res - The HTTPS response object.
+ * @param res - The HTTP response object.
  * @returns A promise that resolves to the parsed JSON data of type T.
  */
 async function handleJsonResponse(res) {
@@ -119,9 +119,9 @@ async function handleJsonResponse(res) {
     return JSON.parse(buffer.toString());
 }
 /**
- * Handles an HTTPS response containing error data.
+ * Handles an HTTP response containing error data.
  *
- * @param res - The HTTPS response object.
+ * @param res - The HTTP response object.
  * @returns A promise that resolves to an `Error` object.
  */
 async function handleErrorResponse(res) {

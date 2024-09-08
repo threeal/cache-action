@@ -3,7 +3,6 @@ import os from 'node:os';
 import path from 'node:path';
 import fsPromises from 'node:fs/promises';
 import https from 'node:https';
-import 'node:stream/promises';
 import { spawn } from 'node:child_process';
 
 /**

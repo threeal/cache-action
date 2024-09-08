@@ -3,7 +3,6 @@ import os from 'node:os';
 import path from 'node:path';
 import fsPromises from 'node:fs/promises';
 import https from 'node:https';
-import streamPromises from 'node:stream/promises';
 import { spawn } from 'node:child_process';
 
 /**
@@ -204,7 +203,10 @@ async function downloadFile(url, savePath, options) {
         maxChunkSize: 4 * 1024 * 1024,
         ...options,
     };
-    const fileSize = await getDownloadFileSize(url);
+    const [file, fileSize] = await Promise.all([
+        fsPromises.open(savePath, "w"),
+        getDownloadFileSize(url),
+    ]);
     const proms = [];
     for (let start = 0; start < fileSize; start += maxChunkSize) {
         proms.push((async () => {
@@ -214,8 +216,8 @@ async function downloadFile(url, savePath, options) {
             const res = await sendRequest(req);
             if (res.statusCode === 206) {
                 assertIncomingMessageContentType(res, "application/octet-stream");
-                const file = fs.createWriteStream(savePath, { start });
-                await streamPromises.pipeline(res, file);
+                const buffer = await readIncomingMessage(res);
+                await file.write(buffer, 0, buffer.length, start);
             }
             else {
                 throw await readErrorIncomingMessage(res);
@@ -223,6 +225,7 @@ async function downloadFile(url, savePath, options) {
         })());
     }
     await Promise.all(proms);
+    await file.close();
 }
 
 /**

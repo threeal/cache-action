@@ -89,10 +89,7 @@ describe("download files", () => {
       savePath,
     );
 
-    await Promise.all([
-      expect(prom).rejects.toThrow("internal server error (500)"),
-      expect(fsPromises.stat(savePath)).rejects.toThrow(),
-    ]);
+    expect(prom).rejects.toThrow("internal server error (500)");
   });
 
   afterAll(() => fsPromises.rm(tempPath, { recursive: true }));

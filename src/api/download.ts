@@ -42,21 +42,27 @@ export async function downloadFile(
   savePath: string,
 ): Promise<void> {
   const fileSize = await getDownloadFileSize(url);
+  const maxChunkSize = 4 * 1024 * 1024;
 
-  const req = https.request(url, { method: "GET" });
-  req.setHeader("range", `bytes=0-${fileSize}`);
+  const proms: Promise<void>[] = [];
+  for (let start = 0; start < fileSize; start += maxChunkSize) {
+    proms.push(
+      (async () => {
+        const end = Math.min(start + maxChunkSize - 1, fileSize);
+        const req = https.request(url, { method: "GET" });
+        req.setHeader("range", `bytes=${start}-${end}`);
 
-  const res = await sendRequest(req);
-
-  switch (res.statusCode) {
-    case 206: {
-      assertIncomingMessageContentType(res, "application/octet-stream");
-      const file = fs.createWriteStream(savePath);
-      await streamPromises.pipeline(res, file);
-      break;
-    }
-
-    default:
-      throw await readErrorIncomingMessage(res);
+        const res = await sendRequest(req);
+        if (res.statusCode === 206) {
+          assertIncomingMessageContentType(res, "application/octet-stream");
+          const file = fs.createWriteStream(savePath, { start });
+          await streamPromises.pipeline(res, file);
+        } else {
+          throw await readErrorIncomingMessage(res);
+        }
+      })(),
+    );
   }
+
+  await Promise.all(proms);
 }

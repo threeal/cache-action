@@ -198,19 +198,25 @@ async function getDownloadFileSize(url) {
  */
 async function downloadFile(url, savePath) {
     const fileSize = await getDownloadFileSize(url);
-    const req = https.request(url, { method: "GET" });
-    req.setHeader("range", `bytes=0-${fileSize}`);
-    const res = await sendRequest(req);
-    switch (res.statusCode) {
-        case 206: {
-            assertIncomingMessageContentType(res, "application/octet-stream");
-            const file = fs.createWriteStream(savePath);
-            await streamPromises.pipeline(res, file);
-            break;
-        }
-        default:
-            throw await readErrorIncomingMessage(res);
+    const maxChunkSize = 4 * 1024 * 1024;
+    const proms = [];
+    for (let start = 0; start < fileSize; start += maxChunkSize) {
+        proms.push((async () => {
+            const end = Math.min(start + maxChunkSize - 1, fileSize);
+            const req = https.request(url, { method: "GET" });
+            req.setHeader("range", `bytes=${start}-${end}`);
+            const res = await sendRequest(req);
+            if (res.statusCode === 206) {
+                assertIncomingMessageContentType(res, "application/octet-stream");
+                const file = fs.createWriteStream(savePath, { start });
+                await streamPromises.pipeline(res, file);
+            }
+            else {
+                throw await readErrorIncomingMessage(res);
+            }
+        })());
     }
+    await Promise.all(proms);
 }
 
 /**

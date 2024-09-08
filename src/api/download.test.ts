@@ -72,7 +72,9 @@ describe("download files", () => {
     const { downloadFile } = await import("./download.js");
 
     const savePath = path.join(tempPath, "a-file");
-    await downloadFile("http://localhost:10002/a-file", savePath);
+    await downloadFile("http://localhost:10002/a-file", savePath, {
+      maxChunkSize: 8,
+    });
 
     const buffer = await fsPromises.readFile(savePath);
     expect(buffer.toString()).toBe(serverFiles["/a-file"]);

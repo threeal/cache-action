@@ -35,14 +35,22 @@ export async function getDownloadFileSize(url: string): Promise<number> {
  *
  * @param url - The URL of the file to be downloaded.
  * @param savePath - The path where the downloaded file will be saved.
+ * @param options - The download options.
+ * @param options.maxChunkSize - The maximum size of each chunk to be downloaded
+ * in bytes. Defaults to 4 MB.
  * @returns A promise that resolves when the download is complete.
  */
 export async function downloadFile(
   url: string,
   savePath: string,
+  options?: { maxChunkSize?: number },
 ): Promise<void> {
+  const { maxChunkSize } = {
+    maxChunkSize: 4 * 1024 * 1024,
+    ...options,
+  };
+
   const fileSize = await getDownloadFileSize(url);
-  const maxChunkSize = 4 * 1024 * 1024;
 
   const proms: Promise<void>[] = [];
   for (let start = 0; start < fileSize; start += maxChunkSize) {

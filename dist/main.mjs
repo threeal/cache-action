@@ -3,7 +3,6 @@ import os from 'node:os';
 import path from 'node:path';
 import fsPromises from 'node:fs/promises';
 import https from 'node:https';
-import streamPromises from 'node:stream/promises';
 import { spawn } from 'node:child_process';
 
 /**
@@ -194,23 +193,39 @@ async function getDownloadFileSize(url) {
  *
  * @param url - The URL of the file to be downloaded.
  * @param savePath - The path where the downloaded file will be saved.
+ * @param options - The download options.
+ * @param options.maxChunkSize - The maximum size of each chunk to be downloaded
+ * in bytes. Defaults to 4 MB.
  * @returns A promise that resolves when the download is complete.
  */
-async function downloadFile(url, savePath) {
-    const fileSize = await getDownloadFileSize(url);
-    const req = https.request(url, { method: "GET" });
-    req.setHeader("range", `bytes=0-${fileSize}`);
-    const res = await sendRequest(req);
-    switch (res.statusCode) {
-        case 206: {
-            assertIncomingMessageContentType(res, "application/octet-stream");
-            const file = fs.createWriteStream(savePath);
-            await streamPromises.pipeline(res, file);
-            break;
-        }
-        default:
-            throw await readErrorIncomingMessage(res);
+async function downloadFile(url, savePath, options) {
+    const { maxChunkSize } = {
+        maxChunkSize: 4 * 1024 * 1024,
+        ...options,
+    };
+    const [file, fileSize] = await Promise.all([
+        fsPromises.open(savePath, "w"),
+        getDownloadFileSize(url),
+    ]);
+    const proms = [];
+    for (let start = 0; start < fileSize; start += maxChunkSize) {
+        proms.push((async () => {
+            const end = Math.min(start + maxChunkSize - 1, fileSize);
+            const req = https.request(url, { method: "GET" });
+            req.setHeader("range", `bytes=${start}-${end}`);
+            const res = await sendRequest(req);
+            if (res.statusCode === 206) {
+                assertIncomingMessageContentType(res, "application/octet-stream");
+                const buffer = await readIncomingMessage(res);
+                await file.write(buffer, 0, buffer.length, start);
+            }
+            else {
+                throw await readErrorIncomingMessage(res);
+            }
+        })());
     }
+    await Promise.all(proms);
+    await file.close();
 }
 
 /**

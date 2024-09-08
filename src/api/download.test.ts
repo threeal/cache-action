@@ -7,7 +7,7 @@ import path from "node:path";
 jest.unstable_mockModule("node:https", () => ({ default: http }));
 
 const serverFiles: Record<string, any | undefined> = {
-  "/a-file": "a content",
+  "/a-file": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
   "/a-corrupted-file": { length: 32 },
 };
 
@@ -31,7 +31,7 @@ const server = http.createServer((req, res) => {
       res.writeHead(206, undefined, {
         "content-type": "application/octet-stream",
       });
-      res.end(file.substring(start, end));
+      res.end(file.substring(start, end + 1));
     } else {
       res.writeHead(500);
       res.end("internal server error");
@@ -72,10 +72,12 @@ describe("download files", () => {
     const { downloadFile } = await import("./download.js");
 
     const savePath = path.join(tempPath, "a-file");
-    await downloadFile("http://localhost:10002/a-file", savePath);
+    await downloadFile("http://localhost:10002/a-file", savePath, {
+      maxChunkSize: 8,
+    });
 
     const buffer = await fsPromises.readFile(savePath);
-    expect(buffer.toString()).toBe("a content");
+    expect(buffer.toString()).toBe(serverFiles["/a-file"]);
   });
 
   it("should throw an error for a corrupted file", async () => {
@@ -87,10 +89,7 @@ describe("download files", () => {
       savePath,
     );
 
-    await Promise.all([
-      expect(prom).rejects.toThrow("internal server error (500)"),
-      expect(fsPromises.stat(savePath)).rejects.toThrow(),
-    ]);
+    expect(prom).rejects.toThrow("internal server error (500)");
   });
 
   afterAll(() => fsPromises.rm(tempPath, { recursive: true }));

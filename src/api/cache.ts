@@ -4,11 +4,11 @@ import https from "node:https";
 
 import {
   readErrorIncomingMessage,
-  readIncomingMessage,
   readJsonIncomingMessage,
   sendJsonRequest,
   sendRequest,
   sendStreamRequest,
+  waitIncomingMessage,
 } from "./http.js";
 
 interface Cache {
@@ -55,7 +55,7 @@ export async function getCache(
 
     // Cache not found, return null.
     case 204:
-      await readIncomingMessage(res);
+      await waitIncomingMessage(res);
       return null;
 
     default:
@@ -90,7 +90,7 @@ export async function reserveCache(
 
     // Cache already reserved, return null.
     case 409:
-      await readIncomingMessage(res);
+      await waitIncomingMessage(res);
       return null;
 
     default:
@@ -129,7 +129,7 @@ export async function uploadCache(
 
         switch (res.statusCode) {
           case 204:
-            await readIncomingMessage(res);
+            await waitIncomingMessage(res);
             break;
 
           default:
@@ -155,5 +155,5 @@ export async function commitCache(id: number, size: number): Promise<void> {
   if (res.statusCode !== 204) {
     throw await readErrorIncomingMessage(res);
   }
-  await readIncomingMessage(res);
+  await waitIncomingMessage(res);
 }

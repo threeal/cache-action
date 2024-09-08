@@ -95,6 +95,21 @@ function assertIncomingMessageContentType(msg, expectedType) {
     }
 }
 /**
+ * Waits until an HTTP incoming message has ended.
+ *
+ * @param msg - The HTTP incoming message.
+ * @returns A promise that resolves when the incoming message ends.
+ */
+async function waitIncomingMessage(msg) {
+    return new Promise((resolve, reject) => {
+        msg.on("data", () => {
+            /** discarded **/
+        });
+        msg.on("end", resolve);
+        msg.on("error", reject);
+    });
+}
+/**
  * Reads the data from an HTTP incoming message.
  *
  * @param msg - The HTTP incoming message.
@@ -174,7 +189,7 @@ async function reserveCache(key, version, size) {
         }
         // Cache already reserved, return null.
         case 409:
-            await readIncomingMessage(res);
+            await waitIncomingMessage(res);
             return null;
         default:
             throw await readErrorIncomingMessage(res);
@@ -202,7 +217,7 @@ async function uploadCache(id, filePath, fileSize, options) {
             const res = await sendStreamRequest(req, bin, start, end);
             switch (res.statusCode) {
                 case 204:
-                    await readIncomingMessage(res);
+                    await waitIncomingMessage(res);
                     break;
                 default:
                     throw await readErrorIncomingMessage(res);
@@ -224,7 +239,7 @@ async function commitCache(id, size) {
     if (res.statusCode !== 204) {
         throw await readErrorIncomingMessage(res);
     }
-    await readIncomingMessage(res);
+    await waitIncomingMessage(res);
 }
 
 /**

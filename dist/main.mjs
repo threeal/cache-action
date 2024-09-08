@@ -73,6 +73,21 @@ function assertIncomingMessageContentType(msg, expectedType) {
     }
 }
 /**
+ * Waits until an HTTP incoming message has ended.
+ *
+ * @param msg - The HTTP incoming message.
+ * @returns A promise that resolves when the incoming message ends.
+ */
+async function waitIncomingMessage(msg) {
+    return new Promise((resolve, reject) => {
+        msg.on("data", () => {
+            /** discarded **/
+        });
+        msg.on("end", resolve);
+        msg.on("error", reject);
+    });
+}
+/**
  * Reads the data from an HTTP incoming message.
  *
  * @param msg - The HTTP incoming message.
@@ -149,7 +164,7 @@ async function getCache(key, version) {
             return await readJsonIncomingMessage(res);
         // Cache not found, return null.
         case 204:
-            await readIncomingMessage(res);
+            await waitIncomingMessage(res);
             return null;
         default:
             throw await readErrorIncomingMessage(res);

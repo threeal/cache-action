@@ -44,6 +44,17 @@ describe("echo HTTP requests", () => {
 
   beforeAll(() => server.listen(10001));
 
+  it("should echo and discard raw data", async () => {
+    const { sendRequest, waitIncomingMessage } = await import("./http.js");
+
+    const req = http.request("http://localhost:10001/echo", { method: "POST" });
+
+    const res = await sendRequest(req, "a message");
+    expect(res.statusCode).toBe(200);
+
+    await waitIncomingMessage(res);
+  });
+
   it("should echo raw data", async () => {
     const { readIncomingMessage, sendRequest } = await import("./http.js");
 

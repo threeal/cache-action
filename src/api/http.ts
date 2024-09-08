@@ -84,6 +84,24 @@ export function assertIncomingMessageContentType(
 }
 
 /**
+ * Waits until an HTTP incoming message has ended.
+ *
+ * @param msg - The HTTP incoming message.
+ * @returns A promise that resolves when the incoming message ends.
+ */
+export async function waitIncomingMessage(
+  msg: http.IncomingMessage,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    msg.on("data", () => {
+      /** discarded **/
+    });
+    msg.on("end", resolve);
+    msg.on("error", reject);
+  });
+}
+
+/**
  * Reads the data from an HTTP incoming message.
  *
  * @param msg - The HTTP incoming message.

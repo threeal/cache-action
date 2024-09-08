@@ -78,7 +78,7 @@ export async function reserveCache(
   size: number,
 ): Promise<number | null> {
   const req = createCacheRequest("caches", { method: "POST" });
-  const res = await sendJsonRequest(req, { key, version, cacheSize: size });
+  const res = await sendJsonRequest(req, { key, version });
 
   switch (res.statusCode) {
     case 201: {

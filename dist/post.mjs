@@ -180,7 +180,7 @@ function createCacheRequest(resourcePath, options) {
  */
 async function reserveCache(key, version, size) {
     const req = createCacheRequest("caches", { method: "POST" });
-    const res = await sendJsonRequest(req, { key, version, cacheSize: size });
+    const res = await sendJsonRequest(req, { key, version });
     switch (res.statusCode) {
         case 201: {
             const { cacheId } = await readJsonIncomingMessage(res);

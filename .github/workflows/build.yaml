@@ -21,7 +21,13 @@ jobs:
         uses: threeal/setup-yarn-action@v2.0.0
 
       - name: Build Package
-        run: yarn build
+        run: yarn pack
 
       - name: Check Diff
         run: git diff && git diff-index --quiet --exit-code HEAD
+
+      - name: Upload Package
+        uses: actions/upload-artifact@v4.4.0
+        with:
+          name: package
+          path: package.tgz

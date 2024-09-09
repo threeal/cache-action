@@ -242,13 +242,13 @@ async function commitCache(id, size) {
 }
 
 /**
- * Handles a child process asynchronously.
+ * Waits for a child process to exit.
  *
- * @param proc - The child process to handle.
+ * @param proc - The child process to wait for.
  * @returns A promise that resolves when the child process exits successfully,
  * or rejects if the process fails.
  */
-async function handleProcess(proc) {
+async function waitChildProcess(proc) {
     return new Promise((resolve, reject) => {
         const chunks = [];
         proc.stderr?.on("data", (chunk) => chunks.push(chunk));
@@ -267,18 +267,17 @@ async function handleProcess(proc) {
     });
 }
 /**
- * Compresses files into an archive using Tar and Zstandard.
+ * Creates a compressed archive from files using Tar and Zstandard.
  *
  * @param archivePath - The output path for the compressed archive.
- * @param filePaths - The paths of the files to be compressed.
- * @returns A promise that resolves when the files have been successfully
- * compressed and the archive is created.
+ * @param filePaths - The paths of the files to be archived.
+ * @returns A promise that resolves when the compressed archive is created.
  */
-async function compressFiles(archivePath, filePaths) {
+async function createArchive(archivePath, filePaths) {
     const tar = spawn("tar", ["-cf", "-", "-P", ...filePaths]);
     const zstd = spawn("zstd", ["-T0", "-o", archivePath]);
     tar.stdout.pipe(zstd.stdin);
-    await Promise.all([handleProcess(tar), handleProcess(zstd)]);
+    await Promise.all([waitChildProcess(tar), waitChildProcess(zstd)]);
 }
 
 /**
@@ -293,7 +292,7 @@ async function compressFiles(archivePath, filePaths) {
 async function saveCache(key, version, filePaths) {
     const tempDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "temp-"));
     const archivePath = path.join(tempDir, "cache.tar.zst");
-    await compressFiles(archivePath, filePaths);
+    await createArchive(archivePath, filePaths);
     const archiveStat = await fsPromises.stat(archivePath);
     const cacheId = await reserveCache(key, version, archiveStat.size);
     if (cacheId === null) {

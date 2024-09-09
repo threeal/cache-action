@@ -9,7 +9,7 @@ import {
   uploadCache,
 } from "./utils/api.js";
 
-import { compressFiles, extractFiles } from "./utils/archive.js";
+import { createArchive, extractArchive } from "./utils/archive.js";
 import { downloadFile } from "./utils/download.js";
 
 /**
@@ -31,7 +31,7 @@ export async function restoreCache(
   const archivePath = path.join(tempDir, "cache.tar.zst");
 
   await downloadFile(cache.archiveLocation, archivePath);
-  await extractFiles(archivePath);
+  await extractArchive(archivePath);
 
   await fsPromises.rm(tempDir, { recursive: true });
   return true;
@@ -54,7 +54,7 @@ export async function saveCache(
   const tempDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "temp-"));
   const archivePath = path.join(tempDir, "cache.tar.zst");
 
-  await compressFiles(archivePath, filePaths);
+  await createArchive(archivePath, filePaths);
   const archiveStat = await fsPromises.stat(archivePath);
 
   const cacheId = await reserveCache(key, version, archiveStat.size);

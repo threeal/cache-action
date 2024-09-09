@@ -129,7 +129,7 @@ jest.unstable_mockModule("./utils/api.js", () => ({
 }));
 
 jest.unstable_mockModule("./utils/archive.js", () => ({
-  compressFiles: async (archivePath: string, filePaths: string[]) => {
+  createArchive: async (archivePath: string, filePaths: string[]) => {
     const archive = {};
     for (const filePath of filePaths) {
       setFile(archive, filePath, getFile(root, filePath));
@@ -141,7 +141,7 @@ jest.unstable_mockModule("./utils/archive.js", () => ({
 
     setFile(root, archivePath, JSON.stringify({ archive, filePaths }));
   },
-  extractFiles: async (archivePath: string) => {
+  extractArchive: async (archivePath: string) => {
     const file = getFile(root, archivePath);
     if (file === undefined)
       throw new Error(`path ${archivePath} does not exist`);

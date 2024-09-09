@@ -1873,6 +1873,28 @@ __metadata:
   languageName: node
   linkType: hard
 
+"cache-action@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "cache-action@workspace:."
+  dependencies:
+    "@eslint/js": "npm:^9.9.1"
+    "@jest/globals": "npm:^29.7.0"
+    "@rollup/plugin-node-resolve": "npm:^15.2.3"
+    "@types/jest": "npm:^29.5.12"
+    "@types/node": "npm:^22.5.4"
+    eslint: "npm:^9.9.1"
+    gha-utils: "npm:^0.2.0"
+    jest: "npm:^29.7.0"
+    prettier: "npm:^3.3.3"
+    rollup: "npm:^4.21.2"
+    rollup-plugin-ts: "npm:^3.4.5"
+    ts-jest: "npm:^29.2.5"
+    tslib: "npm:^2.7.0"
+    typescript: "npm:^5.5.4"
+    typescript-eslint: "npm:^8.4.0"
+  languageName: unknown
+  linkType: soft
+
 "callsites@npm:^3.0.0":
   version: 3.1.0
   resolution: "callsites@npm:3.1.0"
@@ -4603,28 +4625,6 @@ __metadata:
   checksum: 10c0/c9d97f7a21cde110371b2e890a31a996fee09b81e639e79372b962a9638ae653d2d24186b94632fc5dfab8a0582e1d0639dfe34b8b75051facd86915a9585a5f
   languageName: node
   linkType: hard
-
-"root@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "root@workspace:."
-  dependencies:
-    "@eslint/js": "npm:^9.9.1"
-    "@jest/globals": "npm:^29.7.0"
-    "@rollup/plugin-node-resolve": "npm:^15.2.3"
-    "@types/jest": "npm:^29.5.12"
-    "@types/node": "npm:^22.5.4"
-    eslint: "npm:^9.9.1"
-    gha-utils: "npm:^0.2.0"
-    jest: "npm:^29.7.0"
-    prettier: "npm:^3.3.3"
-    rollup: "npm:^4.21.2"
-    rollup-plugin-ts: "npm:^3.4.5"
-    ts-jest: "npm:^29.2.5"
-    tslib: "npm:^2.7.0"
-    typescript: "npm:^5.5.4"
-    typescript-eslint: "npm:^8.4.0"
-  languageName: unknown
-  linkType: soft
 
 "run-parallel@npm:^1.1.9":
   version: 1.2.0

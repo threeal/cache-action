@@ -286,7 +286,7 @@ async function compressFiles(archivePath, filePaths) {
  *
  * @param key - The cache key.
  * @param version - The cache version.
- * @param filePath - The paths of the files to be saved.
+ * @param filePaths - The paths of the files to be saved.
  * @returns A promise that resolves to a boolean value indicating whether the
  * file was saved successfully.
  */

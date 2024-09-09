@@ -4,6 +4,7 @@
 !.nvmrc
 
 dist/lib.*
+docs/
 node_modules/
 
 package.tgz

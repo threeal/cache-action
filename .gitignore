@@ -3,4 +3,5 @@
 !.git*
 !.nvmrc
 
+dist/lib.*
 node_modules/

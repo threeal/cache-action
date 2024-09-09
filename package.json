@@ -2,6 +2,10 @@
   "name": "root",
   "private": true,
   "type": "module",
+  "main": "dist/lib.js",
+  "files": [
+    "dist/lib.mjs"
+  ],
   "scripts": {
     "build": "rollup -c",
     "format": "prettier --write --cache . !dist",

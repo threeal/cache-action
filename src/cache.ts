@@ -49,7 +49,7 @@ export async function restoreCache(
 export async function saveCache(
   key: string,
   version: string,
-  filePaths: string[],
+  filePaths: readonly string[],
 ): Promise<boolean> {
   const tempDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "temp-"));
   const archivePath = path.join(tempDir, "cache.tar.zst");

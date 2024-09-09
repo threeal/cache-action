@@ -40,7 +40,7 @@ export async function handleProcess(proc: ChildProcess): Promise<void> {
  */
 export async function compressFiles(
   archivePath: string,
-  filePaths: string[],
+  filePaths: readonly string[],
 ): Promise<void> {
   const tar = spawn("tar", ["-cf", "-", "-P", ...filePaths]);
   const zstd = spawn("zstd", ["-T0", "-o", archivePath]);

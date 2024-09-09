@@ -1,5 +1,5 @@
 import { nodeResolve } from "@rollup/plugin-node-resolve";
-import typescript from "@rollup/plugin-typescript";
+import ts from "rollup-plugin-ts";
 
 export default ["src/main.ts", "src/post.ts"].map((input) => ({
   input,
@@ -7,5 +7,5 @@ export default ["src/main.ts", "src/post.ts"].map((input) => ({
     dir: "dist",
     entryFileNames: "[name].mjs",
   },
-  plugins: [nodeResolve(), typescript()],
+  plugins: [nodeResolve(), ts({ transpileOnly: true })],
 }));

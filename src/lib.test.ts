@@ -175,7 +175,7 @@ describe("save and restore files from caches", () => {
   });
 
   it("should save files to a cache", async () => {
-    const { saveCache } = await import("./cache.js");
+    const { saveCache } = await import("./lib.js");
 
     root = {
       ...root,
@@ -206,7 +206,7 @@ describe("save and restore files from caches", () => {
   });
 
   it("should not save files to an existing cache", async () => {
-    const { saveCache } = await import("./cache.js");
+    const { saveCache } = await import("./lib.js");
 
     root = {
       ...root,
@@ -237,7 +237,7 @@ describe("save and restore files from caches", () => {
   });
 
   it("should restore files from a cache", async () => {
-    const { restoreCache } = await import("./cache.js");
+    const { restoreCache } = await import("./lib.js");
 
     const restored = await restoreCache("a-key", "a-version");
     expect(restored).toBe(true);
@@ -253,7 +253,7 @@ describe("save and restore files from caches", () => {
   });
 
   it("should not restore files from a non-existing cache", async () => {
-    const { restoreCache } = await import("./cache.js");
+    const { restoreCache } = await import("./lib.js");
 
     const restored = await restoreCache("another-key", "another-version");
     expect(restored).toBe(false);

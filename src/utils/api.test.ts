@@ -41,7 +41,7 @@ beforeAll(() => {
 
 describe("retrieve caches", () => {
   it("should retrieve a cache", async () => {
-    const { getCache } = await import("./cache.js");
+    const { getCache } = await import("./api.js");
 
     serverHandler = async (req, res) => {
       if (req.method !== "GET") return false;
@@ -62,7 +62,7 @@ describe("retrieve caches", () => {
   });
 
   it("should not retrieve a non-existing cache", async () => {
-    const { getCache } = await import("./cache.js");
+    const { getCache } = await import("./api.js");
 
     serverHandler = async (req, res) => {
       if (req.method !== "GET") return false;
@@ -83,7 +83,7 @@ describe("retrieve caches", () => {
   });
 
   it("should fail to retrieve a cache", async () => {
-    const { getCache } = await import("./cache.js");
+    const { getCache } = await import("./api.js");
 
     serverHandler = async () => false;
 
@@ -94,7 +94,7 @@ describe("retrieve caches", () => {
 
 describe("reserve caches", () => {
   it("should reserve a cache", async () => {
-    const { reserveCache } = await import("./cache.js");
+    const { reserveCache } = await import("./api.js");
 
     serverHandler = async (req, res) => {
       if (req.method !== "POST") return false;
@@ -117,7 +117,7 @@ describe("reserve caches", () => {
   });
 
   it("should not reserve a reserved cache", async () => {
-    const { reserveCache } = await import("./cache.js");
+    const { reserveCache } = await import("./api.js");
 
     serverHandler = async (req, res) => {
       if (req.method !== "POST") return false;
@@ -140,7 +140,7 @@ describe("reserve caches", () => {
   });
 
   it("should fail to reserve a cache", async () => {
-    const { reserveCache } = await import("./cache.js");
+    const { reserveCache } = await import("./api.js");
 
     serverHandler = async () => false;
 
@@ -166,7 +166,7 @@ describe("upload files to caches", () => {
   });
 
   it("should upload a file to a cache", async () => {
-    const { uploadCache } = await import("./cache.js");
+    const { uploadCache } = await import("./api.js");
 
     const cacheBuffer = Buffer.alloc(fileSize);
     serverHandler = async (req, res) => {
@@ -194,7 +194,7 @@ describe("upload files to caches", () => {
   });
 
   it("should fail to upload a file to a cache", async () => {
-    const { uploadCache } = await import("./cache.js");
+    const { uploadCache } = await import("./api.js");
 
     serverHandler = async () => false;
 
@@ -207,7 +207,7 @@ describe("upload files to caches", () => {
 
 describe("commit caches", () => {
   it("should commit a cache", async () => {
-    const { commitCache } = await import("./cache.js");
+    const { commitCache } = await import("./api.js");
 
     serverHandler = async (req, res) => {
       if (req.method !== "POST") return false;
@@ -227,7 +227,7 @@ describe("commit caches", () => {
   });
 
   it("should fail to commit a cache", async () => {
-    const { commitCache } = await import("./cache.js");
+    const { commitCache } = await import("./api.js");
 
     serverHandler = async () => false;
 

@@ -73,7 +73,7 @@ jest.unstable_mockModule("node:path", () => ({
   },
 }));
 
-jest.unstable_mockModule("./api/cache.js", () => ({
+jest.unstable_mockModule("./utils/api.js", () => ({
   commitCache: async (id: number, size: number) => {
     const url = cacheUrls[id];
     if (url === undefined) throw new Error(`cache ${id} does not exist`);
@@ -128,21 +128,7 @@ jest.unstable_mockModule("./api/cache.js", () => ({
   },
 }));
 
-jest.unstable_mockModule("./api/download.js", () => ({
-  downloadFile: async (url: string, savePath: string) => {
-    const cloud = clouds[url];
-    if (cloud === undefined) throw new Error(`cloud ${url} does not exist`);
-    if (!cloud.committed)
-      throw new Error(`cloud ${url} has not yet been committed`);
-
-    const file = getFile(root, savePath.split("/").slice(0, -1).join("/"));
-    if (file == undefined) throw new Error(`path ${savePath} does not exist`);
-
-    setFile(root, savePath, cloud.data);
-  },
-}));
-
-jest.unstable_mockModule("./archive.js", () => ({
+jest.unstable_mockModule("./utils/archive.js", () => ({
   compressFiles: async (archivePath: string, filePaths: string[]) => {
     const archive = {};
     for (const filePath of filePaths) {
@@ -166,6 +152,20 @@ jest.unstable_mockModule("./archive.js", () => ({
     for (const filePath of filePaths) {
       setFile(root, filePath, getFile(archive, filePath));
     }
+  },
+}));
+
+jest.unstable_mockModule("./utils/download.js", () => ({
+  downloadFile: async (url: string, savePath: string) => {
+    const cloud = clouds[url];
+    if (cloud === undefined) throw new Error(`cloud ${url} does not exist`);
+    if (!cloud.committed)
+      throw new Error(`cloud ${url} has not yet been committed`);
+
+    const file = getFile(root, savePath.split("/").slice(0, -1).join("/"));
+    if (file == undefined) throw new Error(`path ${savePath} does not exist`);
+
+    setFile(root, savePath, cloud.data);
   },
 }));
 

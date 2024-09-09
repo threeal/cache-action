@@ -7,10 +7,10 @@ import {
   getCache,
   reserveCache,
   uploadCache,
-} from "./api/cache.js";
+} from "./utils/api.js";
 
-import { downloadFile } from "./api/download.js";
-import { compressFiles, extractFiles } from "./archive.js";
+import { compressFiles, extractFiles } from "./utils/archive.js";
+import { downloadFile } from "./utils/download.js";
 
 /**
  * Restores files from the cache using the specified key and version.

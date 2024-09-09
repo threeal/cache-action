@@ -1,8 +1,22 @@
 {
-  "name": "root",
-  "private": true,
+  "name": "cache-action",
+  "version": "0.2.0",
+  "description": "Save and restore files as a cache in GitHub Actions",
+  "keywords": [
+    "github",
+    "action",
+    "cache"
+  ],
+  "homepage": "https://github.com/threeal/cache-action#readme",
+  "bugs": {
+    "url": "https://github.com/threeal/cache-action/issues",
+    "email": "alfi.maulana.f@gmail.com"
+  },
+  "repository": "github:threeal/cache-action",
+  "license": "MIT",
+  "author": "Alfi Maulana <alfi.maulana.f@gmail.com>",
   "type": "module",
-  "main": "dist/lib.js",
+  "main": "dist/lib.mjs",
   "files": [
     "dist/lib.mjs"
   ],
@@ -10,6 +24,7 @@
     "build": "rollup -c",
     "format": "prettier --write --cache . !dist",
     "lint": "eslint",
+    "prepack": "rollup -c",
     "test": "jest"
   },
   "dependencies": {

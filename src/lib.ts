@@ -3,10 +3,10 @@ import os from "node:os";
 import path from "node:path";
 
 import {
-  commitCache,
-  getCache,
-  reserveCache,
-  uploadCache,
+  requestCommitCache,
+  requestGetCache,
+  requestReserveCache,
+  requestUploadCache,
 } from "./utils/api.js";
 
 import { createArchive, extractArchive } from "./utils/archive.js";
@@ -24,7 +24,7 @@ export async function restoreCache(
   key: string,
   version: string,
 ): Promise<boolean> {
-  const cache = await getCache(key, version);
+  const cache = await requestGetCache(key, version);
   if (cache === null) return false;
 
   const tempDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "temp-"));
@@ -57,14 +57,14 @@ export async function saveCache(
   await createArchive(archivePath, filePaths);
   const archiveStat = await fsPromises.stat(archivePath);
 
-  const cacheId = await reserveCache(key, version, archiveStat.size);
+  const cacheId = await requestReserveCache(key, version, archiveStat.size);
   if (cacheId === null) {
     await fsPromises.rm(tempDir, { recursive: true });
     return false;
   }
 
-  await uploadCache(cacheId, archivePath, archiveStat.size);
-  await commitCache(cacheId, archiveStat.size);
+  await requestUploadCache(cacheId, archivePath, archiveStat.size);
+  await requestCommitCache(cacheId, archiveStat.size);
 
   await fsPromises.rm(tempDir, { recursive: true });
   return true;

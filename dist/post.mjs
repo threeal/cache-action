@@ -170,7 +170,7 @@ function createCacheRequest(resourcePath, options) {
     return req;
 }
 /**
- * Reserves a cache with the specified key, version, and size.
+ * Sends a request to reserve a cache with the specified key, version, and size.
  *
  * @param key - The key of the cache to reserve.
  * @param version - The version of the cache to reserve.
@@ -178,7 +178,7 @@ function createCacheRequest(resourcePath, options) {
  * @returns A promise that resolves to the reserved cache ID, or null if the
  * cache is already reserved.
  */
-async function reserveCache(key, version, size) {
+async function requestReserveCache(key, version, size) {
     const req = createCacheRequest("caches", { method: "POST" });
     const res = await sendJsonRequest(req, { key, version, cacheSize: size });
     switch (res.statusCode) {
@@ -195,14 +195,17 @@ async function reserveCache(key, version, size) {
     }
 }
 /**
- * Uploads a file to the cache with the specified ID.
+ * Sends multiple requests to upload a file to the cache with the specified ID.
  *
  * @param id - The cache ID.
  * @param filePath - The path of the file to upload.
  * @param fileSize - The size of the file to upload, in bytes.
- * @returns A promise that resolves to nothing.
+ * @param options - The upload options.
+ * @param options.maxChunkSize - The maximum size of each chunk to be uploaded,
+ * in bytes. Defaults to 4 MB.
+ * @returns A promise that resolves when the file has been uploaded.
  */
-async function uploadCache(id, filePath, fileSize, options) {
+async function requestUploadCache(id, filePath, fileSize, options) {
     const { maxChunkSize } = {
         maxChunkSize: 4 * 1024 * 1024,
         ...options,
@@ -226,13 +229,13 @@ async function uploadCache(id, filePath, fileSize, options) {
     await Promise.all(proms);
 }
 /**
- * Commits a cache with the specified ID.
+ * Sends a request to commit a cache with the specified ID.
  *
  * @param id - The cache ID.
- * @param size - The size of the cache in bytes.
- * @returns A promise that resolves with nothing.
+ * @param size - The size of the cache to be committed, in bytes.
+ * @returns A promise that resolves when the cache has been committed.
  */
-async function commitCache(id, size) {
+async function requestCommitCache(id, size) {
     const req = createCacheRequest(`caches/${id}`, { method: "POST" });
     const res = await sendJsonRequest(req, { size });
     if (res.statusCode !== 204) {
@@ -294,13 +297,13 @@ async function saveCache(key, version, filePaths) {
     const archivePath = path.join(tempDir, "cache.tar.zst");
     await createArchive(archivePath, filePaths);
     const archiveStat = await fsPromises.stat(archivePath);
-    const cacheId = await reserveCache(key, version, archiveStat.size);
+    const cacheId = await requestReserveCache(key, version, archiveStat.size);
     if (cacheId === null) {
         await fsPromises.rm(tempDir, { recursive: true });
         return false;
     }
-    await uploadCache(cacheId, archivePath, archiveStat.size);
-    await commitCache(cacheId, archiveStat.size);
+    await requestUploadCache(cacheId, archivePath, archiveStat.size);
+    await requestCommitCache(cacheId, archiveStat.size);
     await fsPromises.rm(tempDir, { recursive: true });
     return true;
 }

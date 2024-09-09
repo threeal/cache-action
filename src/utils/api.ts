@@ -35,13 +35,13 @@ function createCacheRequest(
 }
 
 /**
- * Retrieves cache information for the specified key and version.
+ * Sends a request to retrieve cache information for the specified key and version.
  *
  * @param key - The cache key.
  * @param version - The cache version.
  * @returns A promise that resolves with the cache information or null if not found.
  */
-export async function getCache(
+export async function requestGetCache(
   key: string,
   version: string,
 ): Promise<Cache | null> {
@@ -64,7 +64,7 @@ export async function getCache(
 }
 
 /**
- * Reserves a cache with the specified key, version, and size.
+ * Sends a request to reserve a cache with the specified key, version, and size.
  *
  * @param key - The key of the cache to reserve.
  * @param version - The version of the cache to reserve.
@@ -72,7 +72,7 @@ export async function getCache(
  * @returns A promise that resolves to the reserved cache ID, or null if the
  * cache is already reserved.
  */
-export async function reserveCache(
+export async function requestReserveCache(
   key: string,
   version: string,
   size: number,
@@ -99,14 +99,17 @@ export async function reserveCache(
 }
 
 /**
- * Uploads a file to the cache with the specified ID.
+ * Sends multiple requests to upload a file to the cache with the specified ID.
  *
  * @param id - The cache ID.
  * @param filePath - The path of the file to upload.
  * @param fileSize - The size of the file to upload, in bytes.
- * @returns A promise that resolves to nothing.
+ * @param options - The upload options.
+ * @param options.maxChunkSize - The maximum size of each chunk to be uploaded,
+ * in bytes. Defaults to 4 MB.
+ * @returns A promise that resolves when the file has been uploaded.
  */
-export async function uploadCache(
+export async function requestUploadCache(
   id: number,
   filePath: string,
   fileSize: number,
@@ -143,13 +146,16 @@ export async function uploadCache(
 }
 
 /**
- * Commits a cache with the specified ID.
+ * Sends a request to commit a cache with the specified ID.
  *
  * @param id - The cache ID.
- * @param size - The size of the cache in bytes.
- * @returns A promise that resolves with nothing.
+ * @param size - The size of the cache to be committed, in bytes.
+ * @returns A promise that resolves when the cache has been committed.
  */
-export async function commitCache(id: number, size: number): Promise<void> {
+export async function requestCommitCache(
+  id: number,
+  size: number,
+): Promise<void> {
   const req = createCacheRequest(`caches/${id}`, { method: "POST" });
   const res = await sendJsonRequest(req, { size });
   if (res.statusCode !== 204) {

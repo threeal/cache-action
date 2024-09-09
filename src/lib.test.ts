@@ -74,7 +74,7 @@ jest.unstable_mockModule("node:path", () => ({
 }));
 
 jest.unstable_mockModule("./utils/api.js", () => ({
-  commitCache: async (id: number, size: number) => {
+  requestCommitCache: async (id: number, size: number) => {
     const url = cacheUrls[id];
     if (url === undefined) throw new Error(`cache ${id} does not exist`);
 
@@ -84,7 +84,7 @@ jest.unstable_mockModule("./utils/api.js", () => ({
     cloud.data.substring(0, Math.min(cloud.size, size));
     cloud.committed = true;
   },
-  getCache: async (key: string, version: string) => {
+  requestGetCache: async (key: string, version: string) => {
     const cacheId = cacheIds[key + version];
     if (cacheId === undefined) return null;
 
@@ -93,7 +93,7 @@ jest.unstable_mockModule("./utils/api.js", () => ({
 
     return { archiveLocation: url };
   },
-  reserveCache: async (key: string, version: string, size: number) => {
+  requestReserveCache: async (key: string, version: string, size: number) => {
     let cacheId = cacheIds[key + version];
     if (cacheId !== undefined) return null;
 
@@ -110,7 +110,11 @@ jest.unstable_mockModule("./utils/api.js", () => ({
     cacheIds[key + version] = cacheId;
     return cacheId;
   },
-  uploadCache: async (id: number, filePath: string, fileSize: number) => {
+  requestUploadCache: async (
+    id: number,
+    filePath: string,
+    fileSize: number,
+  ) => {
     const url = cacheUrls[id];
     if (url === undefined) throw new Error(`cache ${id} does not exist`);
 

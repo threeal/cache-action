@@ -148,13 +148,13 @@ function createCacheRequest(resourcePath, options) {
     return req;
 }
 /**
- * Retrieves cache information for the specified key and version.
+ * Sends a request to retrieve cache information for the specified key and version.
  *
  * @param key - The cache key.
  * @param version - The cache version.
  * @returns A promise that resolves with the cache information or null if not found.
  */
-async function getCache(key, version) {
+async function requestGetCache(key, version) {
     const resourcePath = `cache?keys=${key}&version=${version}`;
     const req = createCacheRequest(resourcePath, { method: "GET" });
     const res = await sendRequest(req);
@@ -275,7 +275,7 @@ async function downloadFile(url, savePath, options) {
  * file was restored successfully.
  */
 async function restoreCache(key, version) {
-    const cache = await getCache(key, version);
+    const cache = await requestGetCache(key, version);
     if (cache === null)
         return false;
     const tempDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "temp-"));

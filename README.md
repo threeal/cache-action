@@ -66,6 +66,29 @@ jobs:
 
 This action will attempt to restore a cache with the key `node-deps` and a version specified by the hash of the `package-lock.json` file. If the cache exists, it will restore the `node_modules` directory and skip dependency installation. Otherwise, it will install the dependencies and save the `node_modules` to the cache at the end of the workflow run.
 
+## Using the JavaScript Library
+
+Install the JavaScript library using a package manager:
+
+```bash
+npm install cache-action
+```
+
+Import the functions using the import statement:
+
+```js
+import { restoreCache, saveCache } from "cache-action";
+
+const restored = await restoreCache("a-key", "a-version");
+if (!restored) {
+  // Do something...
+
+  await saveCache("a-key", "a-version", ["a-file", "another-file"]);
+}
+```
+
+The library provides two functions: `restoreCache` for restoring files from a cache and `saveCache` for saving files to a cache. Refer to the library documentation [here](https://threeal.github.io/cache-action/modules.html) for more details on function usage.
+
 ## License
 
 This project is licensed under the terms of the [MIT License](./LICENSE).

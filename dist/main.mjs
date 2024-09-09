@@ -148,13 +148,13 @@ function createCacheRequest(resourcePath, options) {
     return req;
 }
 /**
- * Retrieves cache information for the specified key and version.
+ * Sends a request to retrieve cache information for the specified key and version.
  *
  * @param key - The cache key.
  * @param version - The cache version.
  * @returns A promise that resolves with the cache information or null if not found.
  */
-async function getCache(key, version) {
+async function requestGetCache(key, version) {
     const resourcePath = `cache?keys=${key}&version=${version}`;
     const req = createCacheRequest(resourcePath, { method: "GET" });
     const res = await sendRequest(req);
@@ -168,6 +168,44 @@ async function getCache(key, version) {
         default:
             throw await readErrorIncomingMessage(res);
     }
+}
+
+/**
+ * Waits for a child process to exit.
+ *
+ * @param proc - The child process to wait for.
+ * @returns A promise that resolves when the child process exits successfully,
+ * or rejects if the process fails.
+ */
+async function waitChildProcess(proc) {
+    return new Promise((resolve, reject) => {
+        const chunks = [];
+        proc.stderr?.on("data", (chunk) => chunks.push(chunk));
+        proc.on("error", reject);
+        proc.on("close", (code) => {
+            if (code === 0) {
+                resolve(undefined);
+            }
+            else {
+                reject(new Error([
+                    `Process failed: ${proc.spawnargs.join(" ")}`,
+                    Buffer.concat(chunks).toString(),
+                ].join("\n")));
+            }
+        });
+    });
+}
+/**
+ * Extracts files from a compressed archive using Tar and Zstandard.
+ *
+ * @param archivePath - The path to the compressed archive to be extracted.
+ * @returns A promise that resolves when the files have been successfully extracted.
+ */
+async function extractArchive(archivePath) {
+    const zstd = spawn("zstd", ["-d", "-T0", "-c", archivePath]);
+    const tar = spawn("tar", ["-xf", "-", "-P"]);
+    zstd.stdout.pipe(tar.stdin);
+    await Promise.all([waitChildProcess(zstd), waitChildProcess(tar)]);
 }
 
 /**
@@ -229,44 +267,6 @@ async function downloadFile(url, savePath, options) {
 }
 
 /**
- * Handles a child process asynchronously.
- *
- * @param proc - The child process to handle.
- * @returns A promise that resolves when the child process exits successfully,
- * or rejects if the process fails.
- */
-async function handleProcess(proc) {
-    return new Promise((resolve, reject) => {
-        const chunks = [];
-        proc.stderr?.on("data", (chunk) => chunks.push(chunk));
-        proc.on("error", reject);
-        proc.on("close", (code) => {
-            if (code === 0) {
-                resolve(undefined);
-            }
-            else {
-                reject(new Error([
-                    `Process failed: ${proc.spawnargs.join(" ")}`,
-                    Buffer.concat(chunks).toString(),
-                ].join("\n")));
-            }
-        });
-    });
-}
-/**
- * Extracts files from an archive using Tar and Zstandard.
- *
- * @param archivePath - The path to the compressed archive to be extracted.
- * @returns A promise that resolves when the files have been successfully extracted.
- */
-async function extractFiles(archivePath) {
-    const zstd = spawn("zstd", ["-d", "-T0", "-c", archivePath]);
-    const tar = spawn("tar", ["-xf", "-", "-P"]);
-    zstd.stdout.pipe(tar.stdin);
-    await Promise.all([handleProcess(zstd), handleProcess(tar)]);
-}
-
-/**
  * Restores files from the cache using the specified key and version.
  *
  * @param key - The cache key.
@@ -275,13 +275,13 @@ async function extractFiles(archivePath) {
  * file was restored successfully.
  */
 async function restoreCache(key, version) {
-    const cache = await getCache(key, version);
+    const cache = await requestGetCache(key, version);
     if (cache === null)
         return false;
     const tempDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "temp-"));
     const archivePath = path.join(tempDir, "cache.tar.zst");
     await downloadFile(cache.archiveLocation, archivePath);
-    await extractFiles(archivePath);
+    await extractArchive(archivePath);
     await fsPromises.rm(tempDir, { recursive: true });
     return true;
 }

@@ -1,5 +1,5 @@
 import { getInput, logError, logInfo, setOutput } from "gha-utils";
-import { restoreCache } from "./cache.js";
+import { restoreCache } from "./lib.js";
 
 try {
   const key = getInput("key");

@@ -73,8 +73,8 @@ jest.unstable_mockModule("node:path", () => ({
   },
 }));
 
-jest.unstable_mockModule("./api/cache.js", () => ({
-  commitCache: async (id: number, size: number) => {
+jest.unstable_mockModule("./utils/api.js", () => ({
+  requestCommitCache: async (id: number, size: number) => {
     const url = cacheUrls[id];
     if (url === undefined) throw new Error(`cache ${id} does not exist`);
 
@@ -84,7 +84,7 @@ jest.unstable_mockModule("./api/cache.js", () => ({
     cloud.data.substring(0, Math.min(cloud.size, size));
     cloud.committed = true;
   },
-  getCache: async (key: string, version: string) => {
+  requestGetCache: async (key: string, version: string) => {
     const cacheId = cacheIds[key + version];
     if (cacheId === undefined) return null;
 
@@ -93,7 +93,7 @@ jest.unstable_mockModule("./api/cache.js", () => ({
 
     return { archiveLocation: url };
   },
-  reserveCache: async (key: string, version: string, size: number) => {
+  requestReserveCache: async (key: string, version: string, size: number) => {
     let cacheId = cacheIds[key + version];
     if (cacheId !== undefined) return null;
 
@@ -110,7 +110,11 @@ jest.unstable_mockModule("./api/cache.js", () => ({
     cacheIds[key + version] = cacheId;
     return cacheId;
   },
-  uploadCache: async (id: number, filePath: string, fileSize: number) => {
+  requestUploadCache: async (
+    id: number,
+    filePath: string,
+    fileSize: number,
+  ) => {
     const url = cacheUrls[id];
     if (url === undefined) throw new Error(`cache ${id} does not exist`);
 
@@ -128,22 +132,8 @@ jest.unstable_mockModule("./api/cache.js", () => ({
   },
 }));
 
-jest.unstable_mockModule("./api/download.js", () => ({
-  downloadFile: async (url: string, savePath: string) => {
-    const cloud = clouds[url];
-    if (cloud === undefined) throw new Error(`cloud ${url} does not exist`);
-    if (!cloud.committed)
-      throw new Error(`cloud ${url} has not yet been committed`);
-
-    const file = getFile(root, savePath.split("/").slice(0, -1).join("/"));
-    if (file == undefined) throw new Error(`path ${savePath} does not exist`);
-
-    setFile(root, savePath, cloud.data);
-  },
-}));
-
-jest.unstable_mockModule("./archive.js", () => ({
-  compressFiles: async (archivePath: string, filePaths: string[]) => {
+jest.unstable_mockModule("./utils/archive.js", () => ({
+  createArchive: async (archivePath: string, filePaths: string[]) => {
     const archive = {};
     for (const filePath of filePaths) {
       setFile(archive, filePath, getFile(root, filePath));
@@ -155,7 +145,7 @@ jest.unstable_mockModule("./archive.js", () => ({
 
     setFile(root, archivePath, JSON.stringify({ archive, filePaths }));
   },
-  extractFiles: async (archivePath: string) => {
+  extractArchive: async (archivePath: string) => {
     const file = getFile(root, archivePath);
     if (file === undefined)
       throw new Error(`path ${archivePath} does not exist`);
@@ -169,13 +159,27 @@ jest.unstable_mockModule("./archive.js", () => ({
   },
 }));
 
+jest.unstable_mockModule("./utils/download.js", () => ({
+  downloadFile: async (url: string, savePath: string) => {
+    const cloud = clouds[url];
+    if (cloud === undefined) throw new Error(`cloud ${url} does not exist`);
+    if (!cloud.committed)
+      throw new Error(`cloud ${url} has not yet been committed`);
+
+    const file = getFile(root, savePath.split("/").slice(0, -1).join("/"));
+    if (file == undefined) throw new Error(`path ${savePath} does not exist`);
+
+    setFile(root, savePath, cloud.data);
+  },
+}));
+
 describe("save and restore files from caches", () => {
   beforeEach(() => {
     root = { tmp: {} };
   });
 
   it("should save files to a cache", async () => {
-    const { saveCache } = await import("./cache.js");
+    const { saveCache } = await import("./lib.js");
 
     root = {
       ...root,
@@ -206,7 +210,7 @@ describe("save and restore files from caches", () => {
   });
 
   it("should not save files to an existing cache", async () => {
-    const { saveCache } = await import("./cache.js");
+    const { saveCache } = await import("./lib.js");
 
     root = {
       ...root,
@@ -237,7 +241,7 @@ describe("save and restore files from caches", () => {
   });
 
   it("should restore files from a cache", async () => {
-    const { restoreCache } = await import("./cache.js");
+    const { restoreCache } = await import("./lib.js");
 
     const restored = await restoreCache("a-key", "a-version");
     expect(restored).toBe(true);
@@ -253,7 +257,7 @@ describe("save and restore files from caches", () => {
   });
 
   it("should not restore files from a non-existing cache", async () => {
-    const { restoreCache } = await import("./cache.js");
+    const { restoreCache } = await import("./lib.js");
 
     const restored = await restoreCache("another-key", "another-version");
     expect(restored).toBe(false);

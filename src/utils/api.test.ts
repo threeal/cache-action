@@ -39,9 +39,9 @@ beforeAll(() => {
   process.env["ACTIONS_RUNTIME_TOKEN"] = "a-token";
 });
 
-describe("retrieve caches", () => {
+describe("send requests to retrieve caches", () => {
   it("should retrieve a cache", async () => {
-    const { getCache } = await import("./cache.js");
+    const { requestGetCache } = await import("./api.js");
 
     serverHandler = async (req, res) => {
       if (req.method !== "GET") return false;
@@ -57,12 +57,12 @@ describe("retrieve caches", () => {
       return true;
     };
 
-    const cache = await getCache("a-key", "a-version");
+    const cache = await requestGetCache("a-key", "a-version");
     expect(cache).toEqual({ cacheKey: "a-key", cacheVersion: "a-version" });
   });
 
   it("should not retrieve a non-existing cache", async () => {
-    const { getCache } = await import("./cache.js");
+    const { requestGetCache } = await import("./api.js");
 
     serverHandler = async (req, res) => {
       if (req.method !== "GET") return false;
@@ -78,23 +78,23 @@ describe("retrieve caches", () => {
       return true;
     };
 
-    const cache = await getCache("a-key", "a-version");
+    const cache = await requestGetCache("a-key", "a-version");
     expect(cache).toBeNull();
   });
 
   it("should fail to retrieve a cache", async () => {
-    const { getCache } = await import("./cache.js");
+    const { requestGetCache } = await import("./api.js");
 
     serverHandler = async () => false;
 
-    const prom = getCache("a-key", "a-version");
+    const prom = requestGetCache("a-key", "a-version");
     await expect(prom).rejects.toThrow("bad request (400)");
   });
 });
 
-describe("reserve caches", () => {
+describe("send requests to reserve caches", () => {
   it("should reserve a cache", async () => {
-    const { reserveCache } = await import("./cache.js");
+    const { requestReserveCache } = await import("./api.js");
 
     serverHandler = async (req, res) => {
       if (req.method !== "POST") return false;
@@ -112,12 +112,12 @@ describe("reserve caches", () => {
       return true;
     };
 
-    const cacheId = await reserveCache("a-key", "a-version", 1024);
+    const cacheId = await requestReserveCache("a-key", "a-version", 1024);
     expect(cacheId).toBe(9);
   });
 
   it("should not reserve a reserved cache", async () => {
-    const { reserveCache } = await import("./cache.js");
+    const { requestReserveCache } = await import("./api.js");
 
     serverHandler = async (req, res) => {
       if (req.method !== "POST") return false;
@@ -135,21 +135,21 @@ describe("reserve caches", () => {
       return true;
     };
 
-    const cacheId = await reserveCache("a-key", "a-version", 1024);
+    const cacheId = await requestReserveCache("a-key", "a-version", 1024);
     expect(cacheId).toBeNull();
   });
 
   it("should fail to reserve a cache", async () => {
-    const { reserveCache } = await import("./cache.js");
+    const { requestReserveCache } = await import("./api.js");
 
     serverHandler = async () => false;
 
-    const prom = reserveCache("a-key", "a-version", 1024);
+    const prom = requestReserveCache("a-key", "a-version", 1024);
     await expect(prom).rejects.toThrow("bad request (400)");
   });
 });
 
-describe("upload files to caches", () => {
+describe("send requests to upload files to caches", () => {
   let tempPath = "";
   let filePath = "";
   let fileSize = 0;
@@ -166,7 +166,7 @@ describe("upload files to caches", () => {
   });
 
   it("should upload a file to a cache", async () => {
-    const { uploadCache } = await import("./cache.js");
+    const { requestUploadCache } = await import("./api.js");
 
     const cacheBuffer = Buffer.alloc(fileSize);
     serverHandler = async (req, res) => {
@@ -187,27 +187,27 @@ describe("upload files to caches", () => {
       return true;
     };
 
-    await uploadCache(9, filePath, fileSize, { maxChunkSize: 8 });
+    await requestUploadCache(9, filePath, fileSize, { maxChunkSize: 8 });
 
     const fileBuffer = await fsPromises.readFile(filePath);
     expect(cacheBuffer.toString()).toBe(fileBuffer.toString());
   });
 
   it("should fail to upload a file to a cache", async () => {
-    const { uploadCache } = await import("./cache.js");
+    const { requestUploadCache } = await import("./api.js");
 
     serverHandler = async () => false;
 
-    const prom = uploadCache(9, filePath, fileSize);
+    const prom = requestUploadCache(9, filePath, fileSize);
     await expect(prom).rejects.toThrow("bad request (400)");
   });
 
   afterAll(() => fsPromises.rm(tempPath, { recursive: true }));
 });
 
-describe("commit caches", () => {
+describe("send requests to commit caches", () => {
   it("should commit a cache", async () => {
-    const { commitCache } = await import("./cache.js");
+    const { requestCommitCache } = await import("./api.js");
 
     serverHandler = async (req, res) => {
       if (req.method !== "POST") return false;
@@ -223,15 +223,15 @@ describe("commit caches", () => {
       return true;
     };
 
-    await commitCache(9, 1024);
+    await requestCommitCache(9, 1024);
   });
 
   it("should fail to commit a cache", async () => {
-    const { commitCache } = await import("./cache.js");
+    const { requestCommitCache } = await import("./api.js");
 
     serverHandler = async () => false;
 
-    const prom = commitCache(9, 1024);
+    const prom = requestCommitCache(9, 1024);
     await expect(prom).rejects.toThrow("bad request (400)");
   });
 });

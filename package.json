@@ -17,8 +17,10 @@
   "author": "Alfi Maulana <alfi.maulana.f@gmail.com>",
   "type": "module",
   "main": "dist/lib.mjs",
+  "types": "dist/lib.d.mts",
   "files": [
-    "dist/lib.mjs"
+    "dist/lib.mjs",
+    "dist/lib.d.mts"
   ],
   "scripts": {
     "build": "rollup -c",

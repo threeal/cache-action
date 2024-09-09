@@ -10,7 +10,12 @@ export default [
   {
     input: "src/lib.ts",
     output,
-    plugins: [ts({ transpileOnly: true })],
+    plugins: [
+      ts({
+        tsconfig: (config) => ({ ...config, declaration: true }),
+        transpileOnly: true,
+      }),
+    ],
   },
   {
     input: "src/main.ts",

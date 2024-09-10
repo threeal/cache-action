@@ -1,26 +1,41 @@
 # Cache Action
 
-Save and restore files as a cache in [GitHub Actions](https://github.com/features/actions). Use this action to cache dependencies or build outputs to speed up GitHub Actions workflows.
+Save and restore files as a cache in [GitHub Actions](https://github.com/features/actions). Use this project to cache dependencies or build outputs to speed up GitHub Actions workflows.
 
-By default, this action will attempt to restore files from a cache if it exists; otherwise, it will save files to a cache at the end of the workflow run.
+This project comprises two components: a GitHub Action that can be used directly in workflows and a [JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript) library that contains functions for use in a [JavaScript Action](https://docs.github.com/en/actions/sharing-automations/creating-actions/creating-a-javascript-action).
 
-## Available Inputs
+## Using the GitHub Action
 
-| Name      | Value Type       | Description                                            |
-| --------- | ---------------- | ------------------------------------------------------ |
-| `key`     | String           | The cache key.                                         |
-| `version` | String           | The cache version.                                     |
-| `files`   | Multiple Strings | The files to be cached, separated by space or newline. |
+Use the following snippet to include the action in a GitHub workflow:
 
-## Available Outputs
+```yaml
+- name: Cache Dependencies
+  uses: threeal/cache-action@v0.2.0
+  with:
+    key: a-key
+    version: a-version
+    files: a-file another-file
+```
+
+By default, the action will attempt to restore files from a cache if it exists; otherwise, it will save files to a cache at the end of the workflow run.
+
+### Available Inputs
+
+| Name      | Value Type       | Description                                              |
+| --------- | ---------------- | -------------------------------------------------------- |
+| `key`     | String           | The cache key.                                           |
+| `version` | String           | The cache version.                                       |
+| `files`   | Multiple Strings | The files to be cached, separated by spaces or newlines. |
+
+### Available Outputs
 
 | Name       | Value Type        | Description                                                             |
 | ---------- | ----------------- | ----------------------------------------------------------------------- |
 | `restored` | `true` or `false` | A boolean value indicating whether the cache was successfully restored. |
 
-### Example Usages
+### Example Usage
 
-The following example demonstrates how to use this action to cache [Node.js](https://nodejs.org/) dependencies in a GitHub Action workflow:
+The following example demonstrates how to use the action to cache [Node.js](https://nodejs.org/) dependencies in a GitHub Action workflow:
 
 ```yaml
 name: Build
@@ -36,7 +51,7 @@ jobs:
 
       - name: Cache Dependencies
         id: cache-deps
-        uses: threeal/cache-action@v0.1.0
+        uses: threeal/cache-action@v0.2.0
         with:
           key: node-deps
           version: ${{ hashFiles('package-lock.json') }}
@@ -49,7 +64,30 @@ jobs:
       # Do something
 ```
 
-This action will attempt to restore a cache with the key `node-deps` and a version specified by the hash of the `package-lock.json` file. If the cache exists, it will restore the `node_modules` directory and skip dependency installation; otherwise, it will install the dependencies and later save the `node_modules` to the cache at the end of the workflow run.
+This action will attempt to restore a cache with the key `node-deps` and a version specified by the hash of the `package-lock.json` file. If the cache exists, it will restore the `node_modules` directory and skip dependency installation. Otherwise, it will install the dependencies and save the `node_modules` to the cache at the end of the workflow run.
+
+## Using the JavaScript Library
+
+Install the JavaScript library using a package manager:
+
+```bash
+npm install cache-action
+```
+
+Import the functions using the import statement:
+
+```js
+import { restoreCache, saveCache } from "cache-action";
+
+const restored = await restoreCache("a-key", "a-version");
+if (!restored) {
+  // Do something...
+
+  await saveCache("a-key", "a-version", ["a-file", "another-file"]);
+}
+```
+
+The library provides two functions: `restoreCache` for restoring files from a cache and `saveCache` for saving files to a cache. Refer to the library documentation [here](https://threeal.github.io/cache-action/modules.html) for more details on function usage.
 
 ## License
 

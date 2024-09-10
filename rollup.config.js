@@ -1,4 +1,5 @@
 import { nodeResolve } from "@rollup/plugin-node-resolve";
+import { builtinModules } from "node:module";
 import ts from "rollup-plugin-ts";
 
 const output = {
@@ -16,6 +17,7 @@ export default [
         transpileOnly: true,
       }),
     ],
+    external: builtinModules.map((module) => `node:${module}`),
   },
   {
     input: "src/main.ts",

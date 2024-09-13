@@ -2,15 +2,12 @@ import { nodeResolve } from "@rollup/plugin-node-resolve";
 import { builtinModules } from "node:module";
 import ts from "rollup-plugin-ts";
 
-const output = {
-  dir: "dist",
-  entryFileNames: "[name].mjs",
-};
-
 export default [
   {
     input: "src/lib.ts",
-    output,
+    output: {
+      dir: "dist",
+    },
     plugins: [
       ts({
         tsconfig: (config) => ({ ...config, declaration: true }),
@@ -21,12 +18,18 @@ export default [
   },
   {
     input: "src/main.ts",
-    output,
+    output: {
+      dir: "dist",
+      entryFileNames: "[name].mjs",
+    },
     plugins: [nodeResolve(), ts({ transpileOnly: true })],
   },
   {
     input: "src/post.ts",
-    output,
+    output: {
+      dir: "dist",
+      entryFileNames: "[name].mjs",
+    },
     plugins: [nodeResolve(), ts({ transpileOnly: true })],
   },
 ];

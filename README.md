@@ -10,7 +10,7 @@ Use the following snippet to include the action in a GitHub workflow:
 
 ```yaml
 - name: Cache Dependencies
-  uses: threeal/cache-action@v0.2.0
+  uses: threeal/cache-action@v0.2.1
   with:
     key: a-key
     version: a-version
@@ -51,7 +51,7 @@ jobs:
 
       - name: Cache Dependencies
         id: cache-deps
-        uses: threeal/cache-action@v0.2.0
+        uses: threeal/cache-action@v0.2.1
         with:
           key: node-deps
           version: ${{ hashFiles('package-lock.json') }}

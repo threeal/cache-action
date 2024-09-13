@@ -3,7 +3,6 @@
 !.git*
 !.nvmrc
 
-dist/lib.*
 docs/
 node_modules/
 

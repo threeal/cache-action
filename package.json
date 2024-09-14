@@ -1,6 +1,6 @@
 {
   "name": "cache-action",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Save and restore files as a cache in GitHub Actions",
   "keywords": [
     "github",
@@ -16,11 +16,11 @@
   "license": "MIT",
   "author": "Alfi Maulana <alfi.maulana.f@gmail.com>",
   "type": "module",
-  "main": "dist/lib.mjs",
-  "types": "dist/lib.d.mts",
+  "main": "dist/lib.js",
+  "types": "dist/lib.d.ts",
   "files": [
-    "dist/lib.mjs",
-    "dist/lib.d.mts"
+    "dist/lib.js",
+    "dist/lib.d.ts"
   ],
   "scripts": {
     "build": "rollup -c",

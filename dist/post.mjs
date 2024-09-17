@@ -1,7 +1,7 @@
 import fs from 'node:fs';
+import fsPromises from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import fsPromises from 'node:fs/promises';
 import https from 'node:https';
 import { spawn } from 'node:child_process';
 
@@ -15,6 +15,7 @@ function getInput(name) {
     const value = process.env[`INPUT_${name.toUpperCase()}`] || "";
     return value.trim();
 }
+
 /**
  * Logs an information message in GitHub Actions.
  *

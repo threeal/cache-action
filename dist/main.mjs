@@ -1,10 +1,24 @@
-import fs from 'node:fs';
+import 'node:fs';
+import fsPromises from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import fsPromises from 'node:fs/promises';
 import https from 'node:https';
 import { spawn } from 'node:child_process';
 
+/**
+ * Retrieves the value of an environment variable.
+ *
+ * @param name - The name of the environment variable.
+ * @returns The value of the environment variable.
+ * @throws Error if the environment variable is not defined.
+ */
+function mustGetEnvironment(name) {
+    const value = process.env[name];
+    if (value === undefined) {
+        throw new Error(`the ${name} environment variable must be defined`);
+    }
+    return value;
+}
 /**
  * Retrieves the value of a GitHub Actions input.
  *
@@ -19,11 +33,14 @@ function getInput(name) {
  * Sets the value of a GitHub Actions output.
  *
  * @param name - The name of the GitHub Actions output.
- * @param value - The value of the GitHub Actions output
+ * @param value - The value to set for the GitHub Actions output.
+ * @returns A promise that resolves when the value is successfully set.
  */
-function setOutput(name, value) {
-    fs.appendFileSync(process.env["GITHUB_OUTPUT"], `${name}=${value}${os.EOL}`);
+async function setOutput(name, value) {
+    const filePath = mustGetEnvironment("GITHUB_OUTPUT");
+    await fsPromises.appendFile(filePath, `${name}=${value}${os.EOL}`);
 }
+
 /**
  * Logs an information message in GitHub Actions.
  *
@@ -292,11 +309,11 @@ try {
     logInfo("Restoring cache...");
     if (await restoreCache(key, version)) {
         logInfo("Cache successfully restored");
-        setOutput("restored", "true");
+        await setOutput("restored", "true");
     }
     else {
         logInfo("Cache does not exist");
-        setOutput("restored", "false");
+        await setOutput("restored", "false");
     }
 }
 catch (err) {

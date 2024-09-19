@@ -8,10 +8,10 @@ try {
   logInfo("Restoring cache...");
   if (await restoreCache(key, version)) {
     logInfo("Cache successfully restored");
-    setOutput("restored", "true");
+    await setOutput("restored", "true");
   } else {
     logInfo("Cache does not exist");
-    setOutput("restored", "false");
+    await setOutput("restored", "false");
   }
 } catch (err) {
   logError(err);

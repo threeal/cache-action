@@ -15,6 +15,16 @@ function getInput(name) {
     const value = process.env[`INPUT_${name.toUpperCase()}`] ?? "";
     return value.trim();
 }
+/**
+ * Retrieves the value of a GitHub Actions state.
+ *
+ * @param name - The name of the GitHub Actions state.
+ * @returns The value of the GitHub Actions state, or an empty string if not found.
+ */
+function getState(name) {
+    const value = process.env[`STATE_${name}`] ?? "";
+    return value.trim();
+}
 
 /**
  * Logs an information message in GitHub Actions.
@@ -310,17 +320,22 @@ async function saveCache(key, version, filePaths) {
 }
 
 try {
-    const key = getInput("key");
-    const version = getInput("version");
-    const filePaths = getInput("files")
-        .split(/\s+/)
-        .filter((arg) => arg != "");
-    logInfo("Saving cache...");
-    if (await saveCache(key, version, filePaths)) {
-        logInfo("Cache successfully saved");
+    if (getState("restored") === "true") {
+        logInfo("Cache already restored, skipping cache save");
     }
     else {
-        logInfo("Cache already exists");
+        const key = getInput("key");
+        const version = getInput("version");
+        const filePaths = getInput("files")
+            .split(/\s+/)
+            .filter((arg) => arg != "");
+        logInfo("Saving cache...");
+        if (await saveCache(key, version, filePaths)) {
+            logInfo("Cache successfully saved");
+        }
+        else {
+            logInfo("Aborting cache save, cache already exists");
+        }
     }
 }
 catch (err) {

@@ -1,0 +1,4 @@
+{
+  "highlightLanguages": ["bash", "js", "yaml"],
+  "treatWarningsAsErrors": true
+}

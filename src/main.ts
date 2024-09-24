@@ -1,4 +1,4 @@
-import { getInput, logError, logInfo, setOutput } from "gha-utils";
+import { getInput, logError, logInfo, setOutput, setState } from "gha-utils";
 import { restoreCache } from "./lib.js";
 
 try {
@@ -8,10 +8,16 @@ try {
   logInfo("Restoring cache...");
   if (await restoreCache(key, version)) {
     logInfo("Cache successfully restored");
-    await setOutput("restored", "true");
+    await Promise.all([
+      setOutput("restored", "true"),
+      setState("restored", "true"),
+    ]);
   } else {
     logInfo("Cache does not exist");
-    await setOutput("restored", "false");
+    await Promise.all([
+      setOutput("restored", "false"),
+      setState("restored", "false"),
+    ]);
   }
 } catch (err) {
   logError(err);

@@ -24,7 +24,7 @@
   ],
   "scripts": {
     "build": "rollup -c",
-    "docs": "typedoc --highlightLanguages yaml src/lib.ts",
+    "docs": "typedoc src/lib.ts",
     "format": "prettier --write --cache . !dist",
     "lint": "eslint",
     "prepack": "rollup -c",

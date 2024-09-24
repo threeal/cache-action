@@ -41,6 +41,18 @@ async function setOutput(name, value) {
     const filePath = mustGetEnvironment("GITHUB_OUTPUT");
     await fsPromises.appendFile(filePath, `${name}=${value}${os.EOL}`);
 }
+/**
+ * Sets the value of a GitHub Actions state.
+ *
+ * @param name - The name of the GitHub Actions state.
+ * @param value - The value to set for the GitHub Actions state.
+ * @returns A promise that resolves when the value is successfully set.
+ */
+async function setState(name, value) {
+    process.env[`STATE_${name}`] = value;
+    const filePath = mustGetEnvironment("GITHUB_STATE");
+    await fsPromises.appendFile(filePath, `${name}=${value}${os.EOL}`);
+}
 
 /**
  * Logs an information message in GitHub Actions.
@@ -310,11 +322,17 @@ try {
     logInfo("Restoring cache...");
     if (await restoreCache(key, version)) {
         logInfo("Cache successfully restored");
-        await setOutput("restored", "true");
+        await Promise.all([
+            setOutput("restored", "true"),
+            setState("restored", "true"),
+        ]);
     }
     else {
         logInfo("Cache does not exist");
-        await setOutput("restored", "false");
+        await Promise.all([
+            setOutput("restored", "false"),
+            setState("restored", "false"),
+        ]);
     }
 }
 catch (err) {

@@ -8,18 +8,16 @@ Use the following snippet to include the action in a GitHub workflow:
   with:
     key: a-key
     version: a-version
-    files: a-file another-file
 ```
 
 By default, the action will attempt to restore files from a cache if it exists. It will set an output that indicates whether the cache was successfully restored.
 
 ## Available Inputs
 
-| Name      | Value Type       | Description                                              |
-| --------- | ---------------- | -------------------------------------------------------- |
-| `key`     | String           | The cache key.                                           |
-| `version` | String           | The cache version.                                       |
-| `files`   | Multiple Strings | The files to be cached, separated by spaces or newlines. |
+| Name      | Value Type | Description        |
+| --------- | ---------- | ------------------ |
+| `key`     | String     | The cache key.     |
+| `version` | String     | The cache version. |
 
 ## Available Outputs
 
@@ -49,7 +47,6 @@ jobs:
         with:
           key: node-deps
           version: ${{ hashFiles('package-lock.json') }}
-          files: node_modules
 
       - name: Install Dependencies
         if: steps.restore-deps-cache.outputs.restored == 'false'

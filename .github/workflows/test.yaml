@@ -40,23 +40,18 @@ jobs:
             dist
           sparse-checkout-cone-mode: false
 
-      - name: Prepare Files
-        shell: bash
+      - name: Clone Sample Projects
         run: |
-          echo "a content" >> a-file
-          echo "another content" >> another-file
-          mkdir a-dir
-          echo "a content" >> a-dir/a-file
+          git clone --depth 1 https://github.com/python/cpython.git
+          git clone --depth 1 https://github.com/python/mypy.git
 
       - name: Save Cache
         id: save-cache
         uses: ./cache-action
         with:
-          key: some-key-${{ matrix.os }}
+          key: sample-projects-${{ matrix.os }}
           version: ${{ github.run_id }}
-          files: |
-            a-file another-file
-            a-dir/a-file
+          files: cpython mypy
 
       - name: Check Output
         shell: bash
@@ -84,19 +79,15 @@ jobs:
         id: restore-cache
         uses: ./cache-action
         with:
-          key: some-key-${{ matrix.os }}
+          key: sample-projects-${{ matrix.os }}
           version: ${{ github.run_id }}
-          files: |
-            a-file another-file
-            a-dir/a-file
+          files: cpython mypy
 
       - name: Check Output
         shell: bash
         run: test "${{ steps.restore-cache.outputs.restored }}" == "true"
 
-      - name: Check Files
-        shell: bash
+      - name: Check Sample Projects
         run: |
-          test "$(cat a-file)" == "a content"
-          test "$(cat another-file)" == "another content"
-          test "$(cat a-dir/a-file)" == "a content"
+          git -C cpython status
+          git -C mypy status

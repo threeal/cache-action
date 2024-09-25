@@ -1,0 +1,22 @@
+name: Save Cache Action
+author: Alfi Maulana
+description: Save files as a cache
+branding:
+  icon: archive
+  color: black
+inputs:
+  key:
+    description: The cache key
+    required: true
+  version:
+    description: The cache version
+    required: true
+  files:
+    description: The files to be cached
+    required: true
+outputs:
+  saved:
+    description: A boolean value indicating whether the cache was successfully saved
+runs:
+  using: node20
+  main: dist/main.mjs

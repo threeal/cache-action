@@ -25,7 +25,7 @@
   "scripts": {
     "build": "rollup -c",
     "docs": "typedoc src/lib.ts",
-    "format": "prettier --write --cache . !dist !restore/dist !save/dist",
+    "format": "prettier --write --cache .",
     "lint": "eslint",
     "prepack": "rollup -c",
     "test": "jest"

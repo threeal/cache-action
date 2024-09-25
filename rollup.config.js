@@ -40,4 +40,12 @@ export default [
     },
     plugins: [nodeResolve(), ts({ transpileOnly: true })],
   },
+  {
+    input: "save/src/main.ts",
+    output: {
+      dir: "save/dist",
+      entryFileNames: "[name].mjs",
+    },
+    plugins: [nodeResolve(), ts({ transpileOnly: true })],
+  },
 ];

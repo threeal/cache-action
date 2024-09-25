@@ -19,7 +19,7 @@ Use the following snippet to include the action in a GitHub workflow:
 
 By default, the action will attempt to restore files from a cache if it exists; otherwise, it will save files to a cache at the end of the workflow run.
 
-To restore files from a cache without saving them at the end of the workflow run, refer to the [restore sub-action](https://github.com/threeal/cache-action/tree/v0.3.0/restore).
+To restore and save the cache in separate steps, refer to the [restore](https://github.com/threeal/cache-action/tree/v0.3.0/restore) and [save](https://github.com/threeal/cache-action/tree/v0.3.0/save) sub-actions.
 
 ### Available Inputs
 

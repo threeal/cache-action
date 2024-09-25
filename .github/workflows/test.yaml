@@ -37,38 +37,14 @@ jobs:
           path: cache-action
           sparse-checkout: |
             dist
-            restore/dist
-            restore/action.yaml
             action.yml
           sparse-checkout-cone-mode: false
-
-      - name: Prepare Files
-        shell: bash
-        run: |
-          echo "a content" >> a-file
-          echo "another content" >> another-file
-          mkdir a-dir
-          echo "a content" >> a-dir/a-file
-
-      - name: Restore Cache
-        id: restore-cache
-        uses: ./cache-action/restore
-        with:
-          key: some-key-${{ matrix.os }}
-          version: ${{ github.run_id }}
-          files: |
-            a-file another-file
-            a-dir/a-file
-
-      - name: Check Output
-        shell: bash
-        run: test "${{ steps.restore-cache.outputs.restored }}" == "false"
 
       - name: Save Cache
         id: save-cache
         uses: ./cache-action
         with:
-          key: some-key-${{ matrix.os }}
+          key: a-key-${{ matrix.os }}
           version: ${{ github.run_id }}
           files: |
             a-file another-file
@@ -77,6 +53,14 @@ jobs:
       - name: Check Output
         shell: bash
         run: test "${{ steps.save-cache.outputs.restored }}" == "false"
+
+      - name: Prepare Files
+        shell: bash
+        run: |
+          echo "a content" >> a-file
+          echo "another content" >> another-file
+          mkdir a-dir
+          echo "a content" >> a-dir/a-file
 
   test-action-restore-file:
     name: Test Action to Restore File
@@ -92,15 +76,15 @@ jobs:
         with:
           path: cache-action
           sparse-checkout: |
-            action.yml
             dist
+            action.yml
           sparse-checkout-cone-mode: false
 
       - name: Restore Cache
         id: restore-cache
         uses: ./cache-action
         with:
-          key: some-key-${{ matrix.os }}
+          key: a-key-${{ matrix.os }}
           version: ${{ github.run_id }}
           files: |
             a-file another-file
@@ -117,8 +101,8 @@ jobs:
           test "$(cat another-file)" == "another content"
           test "$(cat a-dir/a-file)" == "a content"
 
-  test-restore-action-restore-file:
-    name: Test Restore Action to Restore File
+  test-restore-and-save-sub-actions:
+    name: Test Restore and Save Sub-Actions
     needs: test-action-save-file
     runs-on: ${{ matrix.os }}
     strategy:
@@ -133,13 +117,15 @@ jobs:
           sparse-checkout: |
             restore/dist
             restore/action.yml
+            save/dist
+            save/action.yml
           sparse-checkout-cone-mode: false
 
-      - name: Restore Cache
-        id: restore-cache
+      - name: Restore Non-Existing Cache
+        id: restore-non-existing-cache
         uses: ./cache-action/restore
         with:
-          key: some-key-${{ matrix.os }}
+          key: another-key-${{ matrix.os }}
           version: ${{ github.run_id }}
           files: |
             a-file another-file
@@ -147,7 +133,50 @@ jobs:
 
       - name: Check Output
         shell: bash
-        run: test "${{ steps.restore-cache.outputs.restored }}" == "true"
+        run: test "${{ steps.restore-non-existing-cache.outputs.restored }}" == "false"
+
+      - name: Prepare Files
+        shell: bash
+        run: |
+          echo "a content" >> a-file
+          echo "another content" >> another-file
+          mkdir a-dir
+          echo "a content" >> a-dir/a-file
+
+      - name: Save Non-Existing Cache
+        id: save-non-existing-cache
+        uses: ./cache-action/save
+        with:
+          key: another-key-${{ matrix.os }}
+          version: ${{ github.run_id }}
+          files: |
+            a-file another-file
+            a-dir/a-file
+
+      - name: Check Output
+        shell: bash
+        run: test "${{ steps.save-non-existing-cache.outputs.saved }}" == "true"
+
+      - name: Remove Files
+        shell: bash
+        run: |
+          rm a-file
+          rm another-file
+          rm -r a-dir
+
+      - name: Restore Existing Cache
+        id: restore-existing-cache
+        uses: ./cache-action/restore
+        with:
+          key: another-key-${{ matrix.os }}
+          version: ${{ github.run_id }}
+          files: |
+            a-file another-file
+            a-dir/a-file
+
+      - name: Check Output
+        shell: bash
+        run: test "${{ steps.restore-existing-cache.outputs.restored }}" == "true"
 
       - name: Check Files
         shell: bash
@@ -155,3 +184,17 @@ jobs:
           test "$(cat a-file)" == "a content"
           test "$(cat another-file)" == "another content"
           test "$(cat a-dir/a-file)" == "a content"
+
+      - name: Save Existing Cache
+        id: save-existing-cache
+        uses: ./cache-action/save
+        with:
+          key: another-key-${{ matrix.os }}
+          version: ${{ github.run_id }}
+          files: |
+            a-file another-file
+            a-dir/a-file
+
+      - name: Check Output
+        shell: bash
+        run: test "${{ steps.save-existing-cache.outputs.saved }}" == "false"

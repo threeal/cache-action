@@ -6,7 +6,7 @@ export default [
   ...tseslint.configs.recommended,
   ...tseslint.configs.stylistic,
   {
-    ignores: [".*", "dist", "docs", "restore/dist"],
+    ignores: [".*", "dist", "docs", "restore/dist", "save/dist"],
   },
   {
     files: ["**/*.test.ts"],

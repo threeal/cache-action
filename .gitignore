@@ -1,6 +1,7 @@
 .*
 !.env.yarn
 !.git*
+!.prettierignore
 !.nvmrc
 
 dist/lib.*

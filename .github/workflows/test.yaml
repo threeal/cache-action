@@ -36,8 +36,10 @@ jobs:
         with:
           path: cache-action
           sparse-checkout: |
-            action.yml
             dist
+            restore/dist
+            restore/action.yaml
+            action.yml
           sparse-checkout-cone-mode: false
 
       - name: Prepare Files
@@ -47,6 +49,20 @@ jobs:
           echo "another content" >> another-file
           mkdir a-dir
           echo "a content" >> a-dir/a-file
+
+      - name: Restore Cache
+        id: restore-cache
+        uses: ./cache-action/restore
+        with:
+          key: some-key-${{ matrix.os }}
+          version: ${{ github.run_id }}
+          files: |
+            a-file another-file
+            a-dir/a-file
+
+      - name: Check Output
+        shell: bash
+        run: test "${{ steps.restore-cache.outputs.restored }}" == "false"
 
       - name: Save Cache
         id: save-cache
@@ -83,6 +99,45 @@ jobs:
       - name: Restore Cache
         id: restore-cache
         uses: ./cache-action
+        with:
+          key: some-key-${{ matrix.os }}
+          version: ${{ github.run_id }}
+          files: |
+            a-file another-file
+            a-dir/a-file
+
+      - name: Check Output
+        shell: bash
+        run: test "${{ steps.restore-cache.outputs.restored }}" == "true"
+
+      - name: Check Files
+        shell: bash
+        run: |
+          test "$(cat a-file)" == "a content"
+          test "$(cat another-file)" == "another content"
+          test "$(cat a-dir/a-file)" == "a content"
+
+  test-restore-action-restore-file:
+    name: Test Restore Action to Restore File
+    needs: test-action-save-file
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, macos-14, windows-2022]
+    steps:
+      - name: Checkout Action
+        uses: actions/checkout@v4.1.7
+        with:
+          path: cache-action
+          sparse-checkout: |
+            restore/dist
+            restore/action.yml
+          sparse-checkout-cone-mode: false
+
+      - name: Restore Cache
+        id: restore-cache
+        uses: ./cache-action/restore
         with:
           key: some-key-${{ matrix.os }}
           version: ${{ github.run_id }}

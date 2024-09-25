@@ -1,0 +1,22 @@
+name: Restore Cache Action
+author: Alfi Maulana
+description: Restore files as a cache
+branding:
+  icon: archive
+  color: black
+inputs:
+  key:
+    description: The cache key
+    required: true
+  version:
+    description: The cache version
+    required: true
+  files:
+    description: The files to be cached
+    required: true
+outputs:
+  restored:
+    description: A boolean value indicating whether the cache was successfully restored
+runs:
+  using: node20
+  main: dist/main.mjs

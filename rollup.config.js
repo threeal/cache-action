@@ -32,4 +32,12 @@ export default [
     },
     plugins: [nodeResolve(), ts({ transpileOnly: true })],
   },
+  {
+    input: "restore/src/main.ts",
+    output: {
+      dir: "restore/dist",
+      entryFileNames: "[name].mjs",
+    },
+    plugins: [nodeResolve(), ts({ transpileOnly: true })],
+  },
 ];

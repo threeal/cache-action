@@ -1,6 +1,6 @@
 {
   "name": "cache-action",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Save and restore files as a cache in GitHub Actions",
   "keywords": [
     "github",
@@ -25,7 +25,7 @@
   "scripts": {
     "build": "rollup -c",
     "docs": "typedoc src/lib.ts",
-    "format": "prettier --write --cache . !dist",
+    "format": "prettier --write --cache . !dist !restore/dist",
     "lint": "eslint",
     "prepack": "rollup -c",
     "test": "jest"

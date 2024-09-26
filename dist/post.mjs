@@ -169,7 +169,8 @@ async function readErrorIncomingMessage(msg) {
             }
         }
     }
-    return new Error(`${buffer.toString()} (${msg.statusCode})`);
+    const err = buffer.byteLength > 0 ? buffer.toString() : "unknown error";
+    return new Error(`${err} (${msg.statusCode})`);
 }
 
 function createCacheRequest(resourcePath, options) {

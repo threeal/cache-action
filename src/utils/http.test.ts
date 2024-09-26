@@ -101,6 +101,22 @@ describe("echo HTTP requests", () => {
   });
 
   describe("echo error data", () => {
+    it("should echo empty error data", async () => {
+      const { readErrorIncomingMessage, sendRequest } = await import(
+        "./http.js"
+      );
+
+      const req = http.request("http://localhost:10001/echo-error", {
+        method: "POST",
+      });
+
+      const res = await sendRequest(req);
+      expect(res.statusCode).toBe(500);
+
+      const err = await readErrorIncomingMessage(res);
+      expect(err).toEqual(new Error("unknown error (500)"));
+    });
+
     it("should echo error data in JSON", async () => {
       const { readErrorIncomingMessage, sendJsonRequest } = await import(
         "./http.js"

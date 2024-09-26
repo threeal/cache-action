@@ -127,9 +127,6 @@ jobs:
         with:
           key: another-key-${{ matrix.os }}
           version: ${{ github.run_id }}
-          files: |
-            a-file another-file
-            a-dir/a-file
 
       - name: Check Output
         shell: bash
@@ -170,9 +167,6 @@ jobs:
         with:
           key: another-key-${{ matrix.os }}
           version: ${{ github.run_id }}
-          files: |
-            a-file another-file
-            a-dir/a-file
 
       - name: Check Output
         shell: bash

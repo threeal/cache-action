@@ -33,7 +33,7 @@ export default [
     plugins: [nodeResolve(), ts({ transpileOnly: true })],
   },
   {
-    input: "restore/src/main.ts",
+    input: "src/restore/main.ts",
     output: {
       dir: "restore/dist",
       entryFileNames: "[name].mjs",
@@ -41,7 +41,7 @@ export default [
     plugins: [nodeResolve(), ts({ transpileOnly: true })],
   },
   {
-    input: "save/src/main.ts",
+    input: "src/save/main.ts",
     output: {
       dir: "save/dist",
       entryFileNames: "[name].mjs",

@@ -115,9 +115,8 @@ jobs:
         with:
           path: cache-action
           sparse-checkout: |
-            restore/dist
+            dist
             restore/action.yml
-            save/dist
             save/action.yml
           sparse-checkout-cone-mode: false
 

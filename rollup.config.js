@@ -20,7 +20,7 @@ export default [
     input: "src/main.ts",
     output: {
       dir: "dist",
-      entryFileNames: "[name].mjs",
+      entryFileNames: "[name].bundle.mjs",
     },
     plugins: [nodeResolve(), ts({ transpileOnly: true })],
   },
@@ -28,7 +28,7 @@ export default [
     input: "src/post.ts",
     output: {
       dir: "dist",
-      entryFileNames: "[name].mjs",
+      entryFileNames: "[name].bundle.mjs",
     },
     plugins: [nodeResolve(), ts({ transpileOnly: true })],
   },
@@ -36,7 +36,7 @@ export default [
     input: "src/restore/main.ts",
     output: {
       dir: "dist/restore",
-      entryFileNames: "[name].mjs",
+      entryFileNames: "[name].bundle.mjs",
     },
     plugins: [nodeResolve(), ts({ transpileOnly: true })],
   },
@@ -44,7 +44,7 @@ export default [
     input: "src/save/main.ts",
     output: {
       dir: "dist/save",
-      entryFileNames: "[name].mjs",
+      entryFileNames: "[name].bundle.mjs",
     },
     plugins: [nodeResolve(), ts({ transpileOnly: true })],
   },

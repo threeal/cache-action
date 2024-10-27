@@ -28,3 +28,24 @@ jobs:
 
       - name: Check Lint
         run: yarn lint
+
+  check-action:
+    name: Check Action
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout Project
+        uses: actions/checkout@v4.2.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4.0.4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Setup Yarn
+        uses: threeal/setup-yarn-action@v2.0.0
+
+      - name: Bundle Action
+        run: yarn bundle
+
+      - name: Check Diff
+        run: git diff && git diff-index --quiet --exit-code HEAD

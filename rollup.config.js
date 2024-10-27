@@ -1,61 +1,16 @@
 import { nodeResolve } from "@rollup/plugin-node-resolve";
-import ts from "rollup-plugin-ts";
+import typescript from "@rollup/plugin-typescript";
 
 export default [
-  {
-    input: "src/main.ts",
-    output: {
-      dir: "dist",
-      entryFileNames: "[name].bundle.mjs",
-    },
-    plugins: [
-      nodeResolve(),
-      ts({
-        tsconfig: (config) => ({ ...config, declaration: false }),
-        transpileOnly: true,
-      }),
-    ],
+  { input: "src/main.ts", dir: "dist" },
+  { input: "src/post.ts", dir: "dist" },
+  { input: "src/restore/main.ts", dir: "dist/restore" },
+  { input: "src/save/main.ts", dir: "dist/save" },
+].map(({ input, dir }) => ({
+  input,
+  output: {
+    dir,
+    entryFileNames: "[name].bundle.mjs",
   },
-  {
-    input: "src/post.ts",
-    output: {
-      dir: "dist",
-      entryFileNames: "[name].bundle.mjs",
-    },
-    plugins: [
-      nodeResolve(),
-      ts({
-        tsconfig: (config) => ({ ...config, declaration: false }),
-        transpileOnly: true,
-      }),
-    ],
-  },
-  {
-    input: "src/restore/main.ts",
-    output: {
-      dir: "dist/restore",
-      entryFileNames: "[name].bundle.mjs",
-    },
-    plugins: [
-      nodeResolve(),
-      ts({
-        tsconfig: (config) => ({ ...config, declaration: false }),
-        transpileOnly: true,
-      }),
-    ],
-  },
-  {
-    input: "src/save/main.ts",
-    output: {
-      dir: "dist/save",
-      entryFileNames: "[name].bundle.mjs",
-    },
-    plugins: [
-      nodeResolve(),
-      ts({
-        tsconfig: (config) => ({ ...config, declaration: false }),
-        transpileOnly: true,
-      }),
-    ],
-  },
-];
+  plugins: [nodeResolve(), typescript({ declaration: false, outDir: dir })],
+}));

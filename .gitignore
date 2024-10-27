@@ -4,7 +4,8 @@
 !.prettierignore
 !.nvmrc
 
-dist/lib.*
+dist/**/*.js
+dist/**/*.d.ts
 docs/
 node_modules/
 

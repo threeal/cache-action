@@ -19,4 +19,4 @@ outputs:
     description: A boolean value indicating whether the cache was successfully saved
 runs:
   using: node20
-  main: ../dist/save/main.mjs
+  main: ../dist/save/main.bundle.mjs

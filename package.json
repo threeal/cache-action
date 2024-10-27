@@ -19,21 +19,22 @@
   "main": "dist/lib.js",
   "types": "dist/lib.d.ts",
   "files": [
-    "dist/lib.js",
-    "dist/lib.d.ts"
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
   ],
   "scripts": {
-    "build": "rollup -c",
+    "bundle": "rollup -c",
     "docs": "typedoc src/lib.ts",
     "format": "prettier --write --cache .",
     "lint": "eslint",
-    "prepack": "rollup -c",
+    "prepack": "tsc",
     "test": "jest"
   },
   "devDependencies": {
     "@eslint/js": "^9.13.0",
     "@jest/globals": "^29.7.0",
     "@rollup/plugin-node-resolve": "^15.3.0",
+    "@rollup/plugin-typescript": "^12.1.1",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.7.9",
     "eslint": "^9.13.0",
@@ -41,7 +42,6 @@
     "jest": "^29.7.0",
     "prettier": "^3.3.3",
     "rollup": "^4.24.0",
-    "rollup-plugin-ts": "^3.4.5",
     "ts-jest": "^29.2.5",
     "tslib": "^2.8.0",
     "typedoc": "^0.26.10",

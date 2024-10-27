@@ -19,15 +19,15 @@
   "main": "dist/lib.js",
   "types": "dist/lib.d.ts",
   "files": [
-    "dist/lib.js",
-    "dist/lib.d.ts"
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
   ],
   "scripts": {
     "build": "rollup -c",
     "docs": "typedoc src/lib.ts",
     "format": "prettier --write --cache .",
     "lint": "eslint",
-    "prepack": "rollup -c",
+    "prepack": "tsc",
     "test": "jest"
   },
   "devDependencies": {

@@ -1,28 +1,20 @@
 import { nodeResolve } from "@rollup/plugin-node-resolve";
-import { builtinModules } from "node:module";
 import ts from "rollup-plugin-ts";
 
 export default [
-  {
-    input: "src/lib.ts",
-    output: {
-      dir: "dist",
-    },
-    plugins: [
-      ts({
-        tsconfig: (config) => ({ ...config, declaration: true }),
-        transpileOnly: true,
-      }),
-    ],
-    external: builtinModules.map((module) => `node:${module}`),
-  },
   {
     input: "src/main.ts",
     output: {
       dir: "dist",
       entryFileNames: "[name].bundle.mjs",
     },
-    plugins: [nodeResolve(), ts({ transpileOnly: true })],
+    plugins: [
+      nodeResolve(),
+      ts({
+        tsconfig: (config) => ({ ...config, declaration: false }),
+        transpileOnly: true,
+      }),
+    ],
   },
   {
     input: "src/post.ts",
@@ -30,7 +22,13 @@ export default [
       dir: "dist",
       entryFileNames: "[name].bundle.mjs",
     },
-    plugins: [nodeResolve(), ts({ transpileOnly: true })],
+    plugins: [
+      nodeResolve(),
+      ts({
+        tsconfig: (config) => ({ ...config, declaration: false }),
+        transpileOnly: true,
+      }),
+    ],
   },
   {
     input: "src/restore/main.ts",
@@ -38,7 +36,13 @@ export default [
       dir: "dist/restore",
       entryFileNames: "[name].bundle.mjs",
     },
-    plugins: [nodeResolve(), ts({ transpileOnly: true })],
+    plugins: [
+      nodeResolve(),
+      ts({
+        tsconfig: (config) => ({ ...config, declaration: false }),
+        transpileOnly: true,
+      }),
+    ],
   },
   {
     input: "src/save/main.ts",
@@ -46,6 +50,12 @@ export default [
       dir: "dist/save",
       entryFileNames: "[name].bundle.mjs",
     },
-    plugins: [nodeResolve(), ts({ transpileOnly: true })],
+    plugins: [
+      nodeResolve(),
+      ts({
+        tsconfig: (config) => ({ ...config, declaration: false }),
+        transpileOnly: true,
+      }),
+    ],
   },
 ];

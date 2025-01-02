@@ -1,11 +1,11 @@
-import { jest } from "@jest/globals";
 import fsPromises from "node:fs/promises";
 import http from "node:http";
 import os from "node:os";
 import path from "node:path";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { readIncomingMessage } from "./http.js";
 
-jest.unstable_mockModule("node:https", () => ({ default: http }));
+vi.mock("node:https", () => ({ default: http }));
 
 type ServerHandler = (
   req: http.IncomingMessage,

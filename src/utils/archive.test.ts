@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import fsPromises from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createArchive, extractArchive, waitChildProcess } from "./archive.js";
 
 describe("wait child processes", () => {

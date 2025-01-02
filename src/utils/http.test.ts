@@ -1,5 +1,6 @@
 import http from "node:http";
 import stream from "node:stream";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 describe("assert content type of HTTP incoming messages", () => {
   it("should assert the content type", async () => {

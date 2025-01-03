@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { jest } from "@jest/globals";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 interface Cloud {
   data: string;
@@ -37,7 +37,7 @@ const setFile = (root: Directory, path: string, file: File): void => {
   subDir[lastSubPath] = file;
 };
 
-jest.unstable_mockModule("node:fs/promises", () => ({
+vi.mock("node:fs/promises", () => ({
   default: {
     stat: async (path: string) => {
       const file = getFile(root, path);
@@ -61,19 +61,19 @@ jest.unstable_mockModule("node:fs/promises", () => ({
   },
 }));
 
-jest.unstable_mockModule("node:os", () => ({
+vi.mock("node:os", () => ({
   default: {
     tmpdir: () => "tmp",
   },
 }));
 
-jest.unstable_mockModule("node:path", () => ({
+vi.mock("node:path", () => ({
   default: {
     join: (...path: string[]) => path.join("/"),
   },
 }));
 
-jest.unstable_mockModule("./utils/api.js", () => ({
+vi.mock("./utils/api.js", () => ({
   requestCommitCache: async (id: number, size: number) => {
     const url = cacheUrls[id];
     if (url === undefined) throw new Error(`cache ${id} does not exist`);
@@ -132,7 +132,7 @@ jest.unstable_mockModule("./utils/api.js", () => ({
   },
 }));
 
-jest.unstable_mockModule("./utils/archive.js", () => ({
+vi.mock("./utils/archive.js", () => ({
   createArchive: async (archivePath: string, filePaths: string[]) => {
     const archive = {};
     for (const filePath of filePaths) {
@@ -159,7 +159,7 @@ jest.unstable_mockModule("./utils/archive.js", () => ({
   },
 }));
 
-jest.unstable_mockModule("./utils/download.js", () => ({
+vi.mock("./utils/download.js", () => ({
   downloadFile: async (url: string, savePath: string) => {
     const cloud = clouds[url];
     if (cloud === undefined) throw new Error(`cloud ${url} does not exist`);

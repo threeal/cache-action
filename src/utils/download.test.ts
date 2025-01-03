@@ -1,10 +1,10 @@
-import { jest } from "@jest/globals";
 import fsPromises from "node:fs/promises";
 import http from "node:http";
 import os from "node:os";
 import path from "node:path";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-jest.unstable_mockModule("node:https", () => ({ default: http }));
+vi.mock("node:https", () => ({ default: http }));
 
 const serverFiles: Record<string, any | undefined> = {
   "/a-file": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",

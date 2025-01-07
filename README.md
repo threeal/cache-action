@@ -95,4 +95,4 @@ The library provides two functions: `restoreCache` for restoring files from a ca
 
 This project is licensed under the terms of the [MIT License](./LICENSE).
 
-Copyright © 2024 [Alfi Maulana](https://github.com/threeal)
+Copyright © 2024-2025 [Alfi Maulana](https://github.com/threeal)

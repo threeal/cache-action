@@ -1,3 +1,4 @@
 dist
 restore/dist
 save/dist
+pnpm-lock.yaml

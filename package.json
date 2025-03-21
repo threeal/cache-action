@@ -39,7 +39,7 @@
     "eslint": "^9.22.0",
     "gha-utils": "^0.4.1",
     "prettier": "^3.5.3",
-    "rollup": "^4.35.0",
+    "rollup": "^4.36.0",
     "tslib": "^2.8.1",
     "typedoc": "^0.28.0",
     "typescript": "^5.8.2",

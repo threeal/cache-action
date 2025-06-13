@@ -146,6 +146,8 @@ async function azureStorageCopy(source, destination) {
     const azcopy = spawn("azcopy", [
         "copy",
         "--skip-version-check",
+        "--block-size-mb",
+        "32",
         source,
         destination,
     ]);

@@ -3,14 +3,16 @@ import os from "node:os";
 import path from "node:path";
 
 import {
-  requestCommitCache,
-  requestGetCache,
-  requestReserveCache,
-  requestUploadCache,
-} from "./utils/api.js";
+  createCacheEntry,
+  finalizeCacheEntryUpload,
+  getCacheEntryDownloadUrl,
+} from "./internal/api.js";
 
-import { createArchive, extractArchive } from "./utils/archive.js";
-import { downloadFile } from "./utils/download.js";
+import {
+  createArchive,
+  extractArchive,
+  azureStorageCopy,
+} from "./internal/cmd.js";
 
 /**
  * Restores files from the cache using the specified key and version.
@@ -24,13 +26,13 @@ export async function restoreCache(
   key: string,
   version: string,
 ): Promise<boolean> {
-  const cache = await requestGetCache(key, version);
-  if (cache === null) return false;
+  const res = await getCacheEntryDownloadUrl(key, version);
+  if (!res.ok) return false;
 
   const tempDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "temp-"));
   const archivePath = path.join(tempDir, "cache.tar.zst");
 
-  await downloadFile(cache.archiveLocation, archivePath);
+  await azureStorageCopy(res.signed_download_url, archivePath);
   await extractArchive(archivePath);
 
   await fsPromises.rm(tempDir, { recursive: true });
@@ -57,15 +59,17 @@ export async function saveCache(
   await createArchive(archivePath, filePaths);
   const archiveStat = await fsPromises.stat(archivePath);
 
-  const cacheId = await requestReserveCache(key, version, archiveStat.size);
-  if (cacheId === null) {
-    await fsPromises.rm(tempDir, { recursive: true });
-    return false;
+  const res = await createCacheEntry(key, version);
+  if (res.ok) {
+    await azureStorageCopy(archivePath, res.signed_upload_url);
+    const { ok } = await finalizeCacheEntryUpload(
+      key,
+      version,
+      archiveStat.size,
+    );
+    res.ok = ok;
   }
 
-  await requestUploadCache(cacheId, archivePath, archiveStat.size);
-  await requestCommitCache(cacheId, archiveStat.size);
-
   await fsPromises.rm(tempDir, { recursive: true });
-  return true;
+  return res.ok;
 }

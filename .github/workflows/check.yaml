@@ -19,13 +19,13 @@ jobs:
         run: pnpm install
 
       - name: Check Formatting
-        run: pnpm format
+        run: pnpm prettier --check .
 
-      - name: Check Diff
-        run: git diff && git diff-index --quiet --exit-code HEAD
+      - name: Check Types
+        run: pnpm tsc --noEmit
 
       - name: Check Lint
-        run: pnpm lint
+        run: pnpm eslint
 
   check-action:
     name: Check Action
@@ -41,7 +41,4 @@ jobs:
         run: pnpm install
 
       - name: Bundle Action
-        run: pnpm bundle
-
-      - name: Check Diff
-        run: git diff && git diff-index --quiet --exit-code HEAD
+        run: pnpm rollup -c && git diff --exit-code dist

@@ -21,14 +21,6 @@ jobs:
       - name: Build Package
         run: pnpm pack --out package.tgz
 
-      - name: Upload Package
-        uses: actions/upload-artifact@v4.6.2
-        with:
-          name: package
-          path: package.tgz
-          if-no-files-found: error
-          overwrite: true
-
   build-docs:
     name: Build Documentation
     runs-on: ubuntu-24.04
@@ -44,11 +36,3 @@ jobs:
 
       - name: Build Documentation
         run: pnpm typedoc src/lib.ts
-
-      - name: Upload Documentation
-        uses: actions/upload-artifact@v4.6.2
-        with:
-          name: docs
-          path: docs
-          if-no-files-found: error
-          overwrite: true

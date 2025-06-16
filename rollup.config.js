@@ -12,5 +12,5 @@ export default [
     dir,
     entryFileNames: "[name].bundle.mjs",
   },
-  plugins: [nodeResolve(), typescript({ declaration: false, outDir: dir })],
+  plugins: [nodeResolve(), typescript()],
 }));

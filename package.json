@@ -23,7 +23,7 @@
     "dist/**/*.d.ts"
   ],
   "scripts": {
-    "prepack": "tsc",
+    "prepack": "tsc -p tsconfig.build.json",
     "test": "vitest"
   },
   "devDependencies": {

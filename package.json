@@ -24,7 +24,7 @@
   ],
   "scripts": {
     "prepack": "tsc -p tsconfig.build.json",
-    "test": "vitest"
+    "test": "vitest run"
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",

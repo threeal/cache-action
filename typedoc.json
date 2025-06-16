@@ -1,5 +1,4 @@
 {
   "entryPoints": ["src/lib.ts"],
-  "highlightLanguages": ["bash", "js", "yaml"],
   "treatWarningsAsErrors": true
 }

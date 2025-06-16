@@ -27,6 +27,9 @@ jobs:
       - name: Check Lint
         run: pnpm eslint
 
+      - name: Test Project
+        run: pnpm test
+
       - name: Package Library
         run: pnpm pack
 

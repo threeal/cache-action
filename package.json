@@ -32,7 +32,7 @@
     "@rollup/plugin-typescript": "^12.1.2",
     "@tsconfig/node20": "^20.1.5",
     "@types/node": "^24.0.1",
-    "eslint": "^9.28.0",
+    "eslint": "^9.29.0",
     "gha-utils": "^0.4.1",
     "lefthook": "^1.11.13",
     "prettier": "^3.5.3",

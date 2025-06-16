@@ -37,4 +37,4 @@ jobs:
         run: pnpm rollup -c && git diff --exit-code dist
 
       - name: Build Documentation
-        run: pnpm typedoc src/lib.ts
+        run: pnpm typedoc

@@ -8,4 +8,4 @@ dist/**/*.d.ts
 docs/
 node_modules/
 
-package.tgz
+*.tgz

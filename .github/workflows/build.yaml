@@ -19,7 +19,7 @@ jobs:
         run: pnpm install
 
       - name: Build Package
-        run: pnpm pack --out package.tgz
+        run: pnpm pack
 
   build-docs:
     name: Build Documentation

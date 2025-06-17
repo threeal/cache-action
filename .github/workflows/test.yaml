@@ -18,7 +18,8 @@ jobs:
         with:
           path: cache-action
           sparse-checkout: |
-            dist
+            dist/action/main.bundle.mjs
+            dist/action/post.bundle.mjs
             action.yml
           sparse-checkout-cone-mode: false
 
@@ -58,7 +59,8 @@ jobs:
         with:
           path: cache-action
           sparse-checkout: |
-            dist
+            dist/action/main.bundle.mjs
+            dist/action/post.bundle.mjs
             action.yml
           sparse-checkout-cone-mode: false
 
@@ -97,7 +99,8 @@ jobs:
         with:
           path: cache-action
           sparse-checkout: |
-            dist
+            dist/action/restore.bundle.mjs
+            dist/action/save.bundle.mjs
             restore/action.yml
             save/action.yml
           sparse-checkout-cone-mode: false

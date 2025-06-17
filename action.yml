@@ -19,6 +19,6 @@ outputs:
     description: A boolean value indicating whether the cache was successfully restored
 runs:
   using: node20
-  main: dist/main.bundle.mjs
-  post: dist/post.bundle.mjs
+  main: dist/action/main.bundle.mjs
+  post: dist/action/post.bundle.mjs
   post-if: success()

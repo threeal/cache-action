@@ -1,4 +1,4 @@
 {
-  "entryPoints": ["src/lib.ts"],
+  "entryPoints": ["src/lib/cache.ts"],
   "treatWarningsAsErrors": true
 }

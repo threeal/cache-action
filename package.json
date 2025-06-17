@@ -16,11 +16,10 @@
   "license": "MIT",
   "author": "Alfi Maulana <alfi.maulana.f@gmail.com>",
   "type": "module",
-  "main": "dist/lib.js",
-  "types": "dist/lib.d.ts",
+  "main": "dist/lib/cache.js",
+  "types": "dist/lib/cache.d.ts",
   "files": [
-    "dist/**/*.js",
-    "dist/**/*.d.ts"
+    "dist/lib"
   ],
   "scripts": {
     "prepack": "tsc -p tsconfig.build.json",

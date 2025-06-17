@@ -3,8 +3,7 @@
 !.npmrc
 !.prettierignore
 
-dist/**/*.js
-dist/**/*.d.ts
+dist/lib/
 docs/
 node_modules/
 

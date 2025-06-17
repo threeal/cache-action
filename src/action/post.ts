@@ -1,5 +1,5 @@
 import { getInput, getState, logError, logInfo } from "gha-utils";
-import { saveCache } from "./lib.js";
+import { saveCache } from "../lib/cache.js";
 
 try {
   if (getState("restored") === "true") {

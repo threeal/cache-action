@@ -21,7 +21,7 @@ export async function waitProcess(
 ): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     const chunks: Uint8Array[] = [];
-    proc.stderr.on("data", (chunk) => chunks.push(chunk));
+    proc.stderr.on("data", (chunk: Buffer) => chunks.push(chunk));
 
     proc.on("error", reject);
     proc.on("close", (code) => {

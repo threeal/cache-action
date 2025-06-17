@@ -45,24 +45,26 @@ function logError(err) {
 }
 
 async function fetchCacheService(method, body) {
-    return fetch(`${process.env["ACTIONS_RESULTS_URL"]}twirp/github.actions.results.api.v1.CacheService/${method}`, {
+    const url = process.env.ACTIONS_RESULTS_URL ?? "/";
+    const token = process.env.ACTIONS_RUNTIME_TOKEN ?? "";
+    return fetch(`${url}twirp/github.actions.results.api.v1.CacheService/${method}`, {
         body: JSON.stringify(body),
         method: "POST",
         headers: {
-            Authorization: `Bearer ${process.env["ACTIONS_RUNTIME_TOKEN"]}`,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
         },
     });
 }
 async function handleCacheServiceError(res) {
     const contentType = res.headers.get("content-type");
-    if (contentType && contentType.includes("application/json")) {
+    if (contentType?.includes("application/json")) {
         const data = await res.json();
         if (typeof data === "object" && data && "msg" in data) {
-            return new Error(`${data["msg"]} (${res.status})`);
+            return new Error(`${data.msg} (${res.status.toFixed()})`);
         }
     }
-    throw new Error(`${res.statusText} (${res.status})`);
+    throw new Error(`${res.statusText} (${res.status.toFixed()})`);
 }
 function hashVersion(version) {
     return createHash("sha256").update(version).digest("hex");

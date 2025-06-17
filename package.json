@@ -33,6 +33,7 @@
     "@types/node": "^24.0.1",
     "eslint": "^9.29.0",
     "gha-utils": "^0.4.1",
+    "jiti": "^2.4.2",
     "lefthook": "^1.11.13",
     "prettier": "^3.5.3",
     "rollup": "^4.40.0",

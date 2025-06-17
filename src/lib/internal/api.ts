@@ -1,13 +1,18 @@
 import { createHash } from "node:crypto";
 
-async function fetchCacheService(method: string, body: unknown) {
+async function fetchCacheService(
+  method: string,
+  body: unknown,
+): Promise<Response> {
+  const url = process.env.ACTIONS_RESULTS_URL ?? "/";
+  const token = process.env.ACTIONS_RUNTIME_TOKEN ?? "";
   return fetch(
-    `${process.env["ACTIONS_RESULTS_URL"]}twirp/github.actions.results.api.v1.CacheService/${method}`,
+    `${url}twirp/github.actions.results.api.v1.CacheService/${method}`,
     {
       body: JSON.stringify(body),
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env["ACTIONS_RUNTIME_TOKEN"]}`,
+        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
     },
@@ -16,13 +21,13 @@ async function fetchCacheService(method: string, body: unknown) {
 
 async function handleCacheServiceError(res: Response) {
   const contentType = res.headers.get("content-type");
-  if (contentType && contentType.includes("application/json")) {
+  if (contentType?.includes("application/json")) {
     const data = await res.json();
     if (typeof data === "object" && data && "msg" in data) {
-      return new Error(`${data["msg"]} (${res.status})`);
+      return new Error(`${data.msg as string} (${res.status.toFixed()})`);
     }
   }
-  throw new Error(`${res.statusText} (${res.status})`);
+  throw new Error(`${res.statusText} (${res.status.toFixed()})`);
 }
 
 function hashVersion(version: string) {

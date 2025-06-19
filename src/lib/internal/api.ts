@@ -1,5 +1,3 @@
-import { createHash } from "node:crypto";
-
 async function fetchCacheService(
   method: string,
   body: unknown,
@@ -30,10 +28,6 @@ async function handleCacheServiceError(res: Response): Promise<void> {
   throw new Error(`${res.statusText} (${res.status.toFixed()})`);
 }
 
-function hashVersion(version: string) {
-  return createHash("sha256").update(version).digest("hex");
-}
-
 interface GetCacheEntryDownloadUrlResponseSchema {
   ok: boolean;
   signed_download_url: string;
@@ -45,7 +39,7 @@ export async function getCacheEntryDownloadUrl(
 ): Promise<GetCacheEntryDownloadUrlResponseSchema> {
   const res = await fetchCacheService("GetCacheEntryDownloadURL", {
     key,
-    version: hashVersion(version),
+    version,
   });
   if (!res.ok) {
     await handleCacheServiceError(res);
@@ -64,7 +58,7 @@ export async function createCacheEntry(
 ): Promise<CreateCacheEntryResponse> {
   const res = await fetchCacheService("CreateCacheEntry", {
     key,
-    version: hashVersion(version),
+    version,
   });
   if (!res.ok) {
     if (res.status == 409) return { ok: false, signed_upload_url: "" };
@@ -85,7 +79,7 @@ export async function finalizeCacheEntryUpload(
 ): Promise<FinalizeCacheEntryUploadResponse> {
   const res = await fetchCacheService("FinalizeCacheEntryUpload", {
     key,
-    version: hashVersion(version),
+    version,
     sizeBytes,
   });
   if (!res.ok) {

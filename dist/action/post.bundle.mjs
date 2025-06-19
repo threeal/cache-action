@@ -66,13 +66,10 @@ async function handleCacheServiceError(res) {
     }
     throw new Error(`${res.statusText} (${res.status.toFixed()})`);
 }
-function hashVersion(version) {
-    return createHash("sha256").update(version).digest("hex");
-}
 async function createCacheEntry(key, version) {
     const res = await fetchCacheService("CreateCacheEntry", {
         key,
-        version: hashVersion(version),
+        version,
     });
     if (!res.ok) {
         if (res.status == 409)
@@ -84,7 +81,7 @@ async function createCacheEntry(key, version) {
 async function finalizeCacheEntryUpload(key, version, sizeBytes) {
     const res = await fetchCacheService("FinalizeCacheEntryUpload", {
         key,
-        version: hashVersion(version),
+        version,
         sizeBytes,
     });
     if (!res.ok) {
@@ -155,10 +152,11 @@ async function saveCache(key, version, filePaths) {
     const archivePath = path.join(tempDir, "cache.tar.zst");
     await createArchive(archivePath, filePaths);
     const archiveStat = await fsPromises.stat(archivePath);
-    const res = await createCacheEntry(key, version);
+    const versionHash = createHash("sha256").update(version).digest("hex");
+    const res = await createCacheEntry(key, versionHash);
     if (res.ok) {
         await azureStorageCopy(archivePath, res.signed_upload_url);
-        const { ok } = await finalizeCacheEntryUpload(key, version, archiveStat.size);
+        const { ok } = await finalizeCacheEntryUpload(key, versionHash, archiveStat.size);
         res.ok = ok;
     }
     await fsPromises.rm(tempDir, { recursive: true });

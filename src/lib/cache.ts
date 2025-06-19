@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import fsPromises from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -26,7 +27,8 @@ export async function restoreCache(
   key: string,
   version: string,
 ): Promise<boolean> {
-  const res = await getCacheEntryDownloadUrl(key, version);
+  const versionHash = createHash("sha256").update(version).digest("hex");
+  const res = await getCacheEntryDownloadUrl(key, versionHash);
   if (!res.ok) return false;
 
   const tempDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "temp-"));
@@ -59,12 +61,13 @@ export async function saveCache(
   await createArchive(archivePath, filePaths);
   const archiveStat = await fsPromises.stat(archivePath);
 
-  const res = await createCacheEntry(key, version);
+  const versionHash = createHash("sha256").update(version).digest("hex");
+  const res = await createCacheEntry(key, versionHash);
   if (res.ok) {
     await azureStorageCopy(archivePath, res.signed_upload_url);
     const { ok } = await finalizeCacheEntryUpload(
       key,
-      version,
+      versionHash,
       archiveStat.size,
     );
     res.ok = ok;

@@ -94,13 +94,10 @@ async function handleCacheServiceError(res) {
     }
     throw new Error(`${res.statusText} (${res.status.toFixed()})`);
 }
-function hashVersion(version) {
-    return createHash("sha256").update(version).digest("hex");
-}
 async function getCacheEntryDownloadUrl(key, version) {
     const res = await fetchCacheService("GetCacheEntryDownloadURL", {
         key,
-        version: hashVersion(version),
+        version,
     });
     if (!res.ok) {
         await handleCacheServiceError(res);
@@ -165,7 +162,8 @@ async function azureStorageCopy(source, destination) {
  * file was restored successfully.
  */
 async function restoreCache(key, version) {
-    const res = await getCacheEntryDownloadUrl(key, version);
+    const versionHash = createHash("sha256").update(version).digest("hex");
+    const res = await getCacheEntryDownloadUrl(key, versionHash);
     if (!res.ok)
         return false;
     const tempDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "temp-"));

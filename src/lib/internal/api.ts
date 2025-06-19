@@ -19,12 +19,12 @@ async function fetchCacheService(
   );
 }
 
-async function handleCacheServiceError(res: Response) {
+async function handleCacheServiceError(res: Response): Promise<void> {
   const contentType = res.headers.get("content-type");
   if (contentType?.includes("application/json")) {
     const data = await res.json();
     if (typeof data === "object" && data && "msg" in data) {
-      return new Error(`${data.msg as string} (${res.status.toFixed()})`);
+      throw new Error(`${data.msg as string} (${res.status.toFixed()})`);
     }
   }
   throw new Error(`${res.statusText} (${res.status.toFixed()})`);

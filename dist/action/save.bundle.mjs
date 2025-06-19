@@ -77,7 +77,7 @@ async function handleCacheServiceError(res) {
     if (contentType?.includes("application/json")) {
         const data = await res.json();
         if (typeof data === "object" && data && "msg" in data) {
-            return new Error(`${data.msg} (${res.status.toFixed()})`);
+            throw new Error(`${data.msg} (${res.status.toFixed()})`);
         }
     }
     throw new Error(`${res.statusText} (${res.status.toFixed()})`);

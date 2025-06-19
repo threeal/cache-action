@@ -4,7 +4,7 @@ Use the following snippet to include the action in a GitHub workflow:
 
 ```yaml
 - name: Restore Dependencies Cache
-  uses: threeal/cache-action/restore@v0.3.0
+  uses: threeal/cache-action/restore@v1.0.0
   with:
     key: a-key
     version: a-version
@@ -39,11 +39,11 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout Project
-        uses: actions/checkout@v4.2.1
+        uses: actions/checkout@v4.2.2
 
       - name: Restore Dependencies Cache
         id: restore-deps-cache
-        uses: threeal/cache-action/restore@v0.3.0
+        uses: threeal/cache-action/restore@v1.0.0
         with:
           key: node-deps
           version: ${{ hashFiles('package-lock.json') }}

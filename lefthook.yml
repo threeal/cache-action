@@ -29,6 +29,7 @@ pre-commit:
         - src/*.ts
         - .npmrc
         - pnpm-lock.yaml
+        - README.md
         - typedoc.json
       exclude:
         - src/*.test.ts

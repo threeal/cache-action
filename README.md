@@ -10,7 +10,7 @@ Use the following snippet to include the action in a GitHub workflow:
 
 ```yaml
 - name: Cache Dependencies
-  uses: threeal/cache-action@v0.3.0
+  uses: threeal/cache-action@v1.0.0
   with:
     key: a-key
     version: a-version
@@ -19,7 +19,7 @@ Use the following snippet to include the action in a GitHub workflow:
 
 By default, the action will attempt to restore files from a cache if it exists; otherwise, it will save files to a cache at the end of the workflow run.
 
-To restore and save the cache in separate steps, refer to the [restore](https://github.com/threeal/cache-action/tree/v0.3.0/restore) and [save](https://github.com/threeal/cache-action/tree/v0.3.0/save) sub-actions.
+To restore and save the cache in separate steps, refer to the [restore](https://github.com/threeal/cache-action/tree/v1.0.0/restore) and [save](https://github.com/threeal/cache-action/tree/v1.0.0/save) sub-actions.
 
 ### Available Inputs
 
@@ -53,7 +53,7 @@ jobs:
 
       - name: Cache Dependencies
         id: cache-deps
-        uses: threeal/cache-action@v0.3.0
+        uses: threeal/cache-action@v1.0.0
         with:
           key: node-deps
           version: ${{ hashFiles('package-lock.json') }}

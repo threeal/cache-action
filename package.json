@@ -1,6 +1,6 @@
 {
   "name": "cache-action",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "description": "Save and restore files as a cache in GitHub Actions",
   "keywords": [
     "github",

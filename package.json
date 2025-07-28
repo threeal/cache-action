@@ -36,7 +36,7 @@
     "jiti": "^2.4.2",
     "lefthook": "^1.12.2",
     "prettier": "^3.6.2",
-    "rollup": "^4.44.1",
+    "rollup": "^4.46.1",
     "typedoc": "^0.28.5",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.34.1",

@@ -3,47 +3,21 @@ pre-commit:
   jobs:
     - name: install dependencies
       run: pnpm install
-      glob:
-        - .npmrc
-        - package.json
-        - pnpm-lock.yaml
-        - pnpm-workspace.yaml
 
     - name: check types
       run: pnpm tsc
-      glob:
-        - "*.ts"
-        - .npmrc
-        - pnpm-lock.yaml
-        - tsconfig.json
 
     - name: fix formatting
-      run: pnpm prettier --write --ignore-unknown {staged_files}
+      run: pnpm prettier --write .
 
     - name: fix lint
-      run: pnpm eslint --no-warn-ignored --fix {staged_files}
+      run: pnpm eslint --fix
 
     - name: check documentation
       run: pnpm typedoc --emit none
-      glob:
-        - src/*.ts
-        - .npmrc
-        - pnpm-lock.yaml
-        - README.md
-        - typedoc.json
-      exclude:
-        - src/*.test.ts
 
     - name: build action
       run: pnpm rollup -c
-      glob:
-        - dist/action/*
-        - src/*.ts
-        - .npmrc
-        - pnpm-lock.yaml
-        - tsconfig.json
-      exclude:
-        - src/*.test.ts
 
     - name: check diff
-      run: git diff --exit-code dist/action {staged_files}
+      run: git diff --exit-code dist/action pnpm-lock.yaml {staged_files}

@@ -10,9 +10,9 @@ import {
 } from "./internal/api.js";
 
 import {
+  azureStorageCopy,
   createArchive,
   extractArchive,
-  azureStorageCopy,
 } from "./internal/cmd.js";
 
 /**

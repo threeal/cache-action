@@ -34,7 +34,7 @@
     "eslint": "^9.39.2",
     "gha-utils": "^0.4.1",
     "jiti": "^2.6.1",
-    "lefthook": "^2.0.16",
+    "lefthook": "^2.1.0",
     "prettier": "^3.8.1",
     "prettier-plugin-organize-imports": "^4.3.0",
     "rollup": "^4.53.3",

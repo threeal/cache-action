@@ -15,5 +15,5 @@ outputs:
   restored:
     description: A boolean value indicating whether the cache was successfully restored
 runs:
-  using: node20
+  using: node24
   main: ../dist/action/restore.bundle.mjs

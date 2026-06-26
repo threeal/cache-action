@@ -18,5 +18,5 @@ outputs:
   saved:
     description: A boolean value indicating whether the cache was successfully saved
 runs:
-  using: node20
+  using: node24
   main: ../dist/action/save.bundle.mjs
